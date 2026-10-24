@@ -1,23 +1,8 @@
-BER INGENIERÍA S.A.S. — DEMOSTRACIÓN DE CONTROL DE VIÁTICOS
+BER INGENIERÍA S.A.S. — DEMOSTRACIÓN CON VISTA DE ADMINISTRACIÓN
 
-ARCHIVOS
-- index.html: aplicación completa, con HTML, CSS y JavaScript integrados.
-- assets/ber-logo.png: logo usado en la bienvenida y el encabezado.
-- icons/: iconos para instalación en el celular.
-- manifest.json y sw.js: configuración PWA y caché.
+1. Mantén la estructura de carpetas al publicar. index.html queda en la raíz junto a manifest.json y sw.js; assets/ contiene el logo e icons/ los iconos.
+2. En la pantalla de acceso, pulsa “Ver comprobantes por empleado”.
+3. Crea un empleado, entra a su panel, registra un gasto y adjunta una fotografía o PDF. Luego vuelve a la vista de administración: el gasto aparece bajo el nombre del empleado y se puede abrir el comprobante.
+4. La vista ordena empleados alfabéticamente y los gastos por fecha descendente. Incluye búsqueda y filtros por comprobantes.
 
-PARA VERLA RÁPIDO
-1. Extrae el ZIP.
-2. Abre index.html en Chrome en un computador. Algunas funciones de instalación solo funcionan cuando se publica en HTTPS.
-3. Para publicarla en GitHub Pages, sube TODO el contenido extraído a la raíz del repositorio, conservando las carpetas assets e icons.
-4. Espera la publicación y abre la URL de GitHub Pages en Chrome móvil. Si ves una versión vieja, recarga la página o borra los datos del sitio.
-
-FUNCIONES DE DEMOSTRACIÓN
-- Crear perfiles de empleados en el dispositivo/navegador.
-- Registrar anticipos y gastos por categoría.
-- Adjuntar un comprobante de imagen o PDF a un gasto.
-- Ver movimientos y exportar el resumen a CSV.
-- Diseño adaptable a celular y computador.
-
-LIMITACIONES IMPORTANTES
-Los datos se guardan localmente en el navegador de ese dispositivo. No hay base de datos central ni sincronización entre teléfonos o con administración. No hay transferencias bancarias automáticas. Para uso empresarial real, agregar autenticación, permisos, base de datos compartida, copias de seguridad y revisión de seguridad.
+IMPORTANTE: esta es una demostración local. Los registros y archivos se guardan en el navegador/dispositivo donde se registran. No hay sincronización entre celulares ni base de datos central. Para que el administrador vea los comprobantes que cada empleado sube desde su propio teléfono, hace falta conectar autenticación y una base de datos/almacenamiento compartidos. No usar con información real hasta implementar y probar esos componentes.

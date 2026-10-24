@@ -38,12 +38,32 @@ main{padding:0 18px}.welcome{padding:34px 5px 26px}.eyebrow,.step-label{font:700
 .receipt-delete:focus-visible,.btn:focus-visible,.action-card:focus-visible,.icon-button:focus-visible{outline:3px solid #d9a62e;outline-offset:3px}
 @media(max-width:360px){main{padding:0 12px}.welcome{padding-top:27px}.panel{padding:18px 14px}.summary-card{padding:13px}.action-card{padding:14px 11px}}
 
+  
+/* Panel de administración: comprobantes organizados por empleado */
+.admin-entry{border:1px solid #e4eaf1;border-radius:15px;padding:14px;margin:12px 0;background:#fff}
+.admin-employee-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid #edf0f4}
+.admin-employee-head strong{color:var(--navy);font-size:14px}
+.admin-employee-head small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.admin-count{background:#f8efd6;color:#876519;padding:5px 9px;border-radius:30px;font-size:10px;font-weight:800;white-space:nowrap}
+.admin-receipt-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #f0f2f5}
+.admin-receipt-row:last-child{border-bottom:0}
+.receipt-thumb{width:64px;height:64px;flex:0 0 64px;object-fit:cover;border-radius:10px;background:#edf1f6;border:1px solid #e2e8ef}
+.receipt-file-icon{display:grid;place-items:center;font-size:22px;color:var(--navy)}
+.admin-receipt-info{flex:1;min-width:0}
+.admin-receipt-info strong{display:block;font-size:12px;color:var(--navy);overflow-wrap:anywhere}
+.admin-receipt-info small{display:block;font-size:10px;color:#8490a1;margin-top:4px}
+.admin-receipt-info a{display:inline-block;margin-top:6px;color:#8b681a;font-weight:800;font-size:11px;text-decoration:none}
+.admin-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+.admin-toolbar .control{flex:1;min-width:160px}
+.admin-empty{padding:18px 10px;text-align:center;color:#8792a2;font-size:12px}
+@media(max-width:420px){.admin-receipt-row{align-items:flex-start}.receipt-thumb{width:54px;height:54px;flex-basis:54px}.admin-entry{padding:11px}}
+
   </style>
 </head>
 <body>
   <div id="splash" class="splash" aria-label="BER Ingeniería">
     <div class="splash-mark" aria-label="BER"><span>B</span><span>E</span><span>R</span></div>
-    <img class="splash-logo" src="img/logo-ber-original.png" alt="Logo original de BER Ingeniería SAS" width="180" height="176">
+    <img class="splash-logo" src="./assets/ber-logo.png" alt="Logo original de BER Ingeniería SAS" width="180" height="176">
     <div class="splash-line"></div>
     <p>INGENIERÍA S.A.S.</p>
     <small>GESTIÓN Y CONTROL DE VIÁTICOS</small>
@@ -52,7 +72,7 @@ main{padding:0 18px}.welcome{padding:34px 5px 26px}.eyebrow,.step-label{font:700
   <div id="app" class="app-shell hidden">
     <header class="topbar">
       <a class="brand" href="#" aria-label="BER Ingeniería inicio">
-        <img class="brand-logo" src="img/logo-ber-original.png" alt="Logo BER Ingeniería SAS" width="54" height="52">
+        <img class="brand-logo" src="./assets/ber-logo.png" alt="Logo BER Ingeniería SAS" width="54" height="52">
         <span class="brand-copy"><strong>BER <em>INGENIERÍA S.A.S.</em></strong><small>GESTIÓN DE VIÁTICOS</small></span>
       </a>
       <button id="installBtn" class="icon-button install-btn" type="button" aria-label="Instalar aplicación" title="Instalar aplicación">＋</button>
@@ -75,6 +95,7 @@ main{padding:0 18px}.welcome{padding:34px 5px 26px}.eyebrow,.step-label{font:700
           <option value="">Selecciona tu nombre</option>
         </select>
         <button id="enterBtn" class="btn btn-primary full" type="button">Consultar mis movimientos <span>→</span></button>
+        <button id="adminViewBtn" class="btn btn-outline full" type="button">▦ Ver comprobantes por empleado</button>
         <div class="divider"><span>¿Primera vez? Crea un perfil de demostración</span></div>
         <form id="employeeForm" class="inline-form">
           <label for="employeeName" class="field-label">Nombre y apellidos</label>
@@ -140,6 +161,14 @@ main{padding:0 18px}.welcome{padding:34px 5px 26px}.eyebrow,.step-label{font:700
           <div id="historyList" class="history-list"><div class="empty-state"><span class="empty-icon">↗</span><strong>Aún no hay movimientos</strong><p>Cuando registres un viático o gasto, aparecerá aquí.</p></div></div>
           <div class="history-footer"><button id="exportBtn" class="btn btn-outline" type="button">Descargar reporte CSV</button></div>
         </section>
+      </section>
+
+      <section id="adminPanel" class="panel hidden" aria-live="polite">
+        <div class="section-heading"><div><span class="step-label">VISTA DE ADMINISTRACIÓN</span><h2>Comprobantes por empleado</h2><p style="margin:7px 0 0;color:#778397;font-size:12px">Consulta los gastos y abre cada fotografía o PDF registrado.</p></div><button id="closeAdminBtn" class="close-panel" type="button" aria-label="Cerrar administración">×</button></div>
+        <div class="admin-toolbar"><input id="adminSearch" class="control" type="search" placeholder="Buscar empleado o gasto..."><select id="adminFilter" class="control"><option value="all">Todos los registros</option><option value="with">Solo gastos con comprobante</option><option value="without">Gastos sin comprobante</option></select></div>
+        <div id="adminSummary" class="field-help"></div>
+        <div id="adminReceipts"></div>
+        <p class="field-help">Demostración: esta vista reúne los datos guardados en este navegador. Para que administración vea fotos cargadas desde otros celulares, se debe conectar una base de datos compartida.</p>
       </section>
 
       <section class="privacy-note"><span class="lock-icon">◇</span><div><strong>Demostración funcional</strong><p>Los registros de esta versión se guardan en este dispositivo. No se envían todavía a una base de datos central ni se comparten con administración.</p></div></section>
@@ -222,6 +251,49 @@ main{padding:0 18px}.welcome{padding:34px 5px 26px}.eyebrow,.step-label{font:700
       if (saveState()) { renderDashboard(); toast("Comprobante retirado del registro."); }
     }));
   }
+  function renderAdmin() {
+    const target = $("adminReceipts");
+    const query = ($("adminSearch").value || "").trim().toLocaleLowerCase();
+    const filter = $("adminFilter").value;
+    const employees = [...state.employees].sort((a,b)=>a.name.localeCompare(b.name,"es",{sensitivity:"base"}));
+    let totalExpenses=0, totalReceipts=0, totalMissing=0;
+    const sections = [];
+    employees.forEach(employee => {
+      const expenses = (employee.movements || []).filter(m=>m.type==="expense").sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.createdAt||0)-(a.createdAt||0));
+      totalExpenses += expenses.length; totalReceipts += expenses.filter(m=>m.receipt).length; totalMissing += expenses.filter(m=>!m.receipt).length;
+      const matched = expenses.filter(m => {
+        const text = [employee.name,m.description,m.category,m.date,m.receipt?.name].join(" ").toLocaleLowerCase();
+        if(query && !text.includes(query)) return false;
+        if(filter==="with" && !m.receipt) return false;
+        if(filter==="without" && m.receipt) return false;
+        return true;
+      });
+      if(!matched.length) return;
+      const rows = matched.map(m => {
+        const date = m.date ? new Date(m.date+"T12:00:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "Sin fecha";
+        let visual = '<div class="receipt-thumb receipt-file-icon">▤</div>';
+        let link = '<span class="field-help">Sin comprobante adjunto</span>';
+        if(m.receipt && m.receipt.data) {
+          if((m.receipt.type||"").startsWith("image/")) visual = `<img class="receipt-thumb" src="${m.receipt.data}" alt="Comprobante de ${escapeHtml(employee.name)}">`;
+          else visual = '<div class="receipt-thumb receipt-file-icon">PDF</div>';
+          link = `<a href="${m.receipt.data}" target="_blank" rel="noopener">Abrir comprobante ↗</a>`;
+        }
+        return `<div class="admin-receipt-row">${visual}<div class="admin-receipt-info"><strong>${escapeHtml(m.description||m.category||"Gasto")}</strong><small>${escapeHtml(date)} · ${escapeHtml(m.category||"Sin categoría")} · ${money(m.amount)}</small><small>${m.receipt ? escapeHtml(m.receipt.name) : "Pendiente de soporte"}</small>${link}</div></div>`;
+      }).join("");
+      sections.push(`<article class="admin-entry"><div class="admin-employee-head"><div><strong>${escapeHtml(employee.name)}</strong><small>${expenses.length} gasto(s) registrado(s)</small></div><span class="admin-count">${matched.filter(m=>m.receipt).length} soporte(s) en vista</span></div>${rows}</article>`);
+    });
+    $("adminSummary").textContent = `${employees.length} empleado(s) · ${totalExpenses} gasto(s) · ${totalReceipts} comprobante(s) adjunto(s) · ${totalMissing} gasto(s) sin soporte.`;
+    target.innerHTML = sections.length ? sections.join("") : '<div class="admin-empty">No hay registros que coincidan. Crea un empleado y registra un gasto con fotografía o PDF para mostrarlo aquí.</div>';
+  }
+  function showAdmin() {
+    $("profilePanel").classList.add("hidden"); $("dashboard").classList.add("hidden"); $("adminPanel").classList.remove("hidden");
+    renderAdmin(); window.scrollTo({top:0,behavior:"smooth"});
+  }
+  $("adminViewBtn").addEventListener("click", showAdmin);
+  $("closeAdminBtn").addEventListener("click",()=>{ $("adminPanel").classList.add("hidden"); $("profilePanel").classList.remove("hidden"); window.scrollTo({top:0,behavior:"smooth"}); });
+  $("adminSearch").addEventListener("input",renderAdmin);
+  $("adminFilter").addEventListener("change",renderAdmin);
+
   function showPanel(id) {
     ["advancePanel","expensePanel"].forEach(p=>$(p).classList.add("hidden"));
     $(id).classList.remove("hidden"); $(id).scrollIntoView({behavior:"smooth",block:"start"});
@@ -251,7 +323,7 @@ main{padding:0 18px}.welcome{padding:34px 5px 26px}.eyebrow,.step-label{font:700
     const amount=Number($("advanceAmount").value);
     if(!Number.isFinite(amount)||amount<=0){toast("Escribe un valor válido.");return;}
     employee.movements.push({id:Date.now(),type:"advance",amount,date:$("advanceDate").value,purpose:$("advancePurpose").value.trim(),createdAt:Date.now()});
-    if(saveState()){e.target.reset();hidePanel("advancePanel");renderDashboard();toast("Viático guardado correctamente.");}
+    if(saveState()){e.target.reset();hidePanel("advancePanel");renderDashboard();renderAdmin();toast("Viático guardado correctamente.");}
   });
   $("expenseForm").addEventListener("submit",async e=>{
     e.preventDefault(); const employee=getEmployee(); if(!employee)return;
@@ -264,7 +336,7 @@ main{padding:0 18px}.welcome{padding:34px 5px 26px}.eyebrow,.step-label{font:700
       catch { toast("No se pudo leer el soporte."); return; }
     }
     employee.movements.push({id:Date.now(),type:"expense",amount,date:$("expenseDate").value,category:$("expenseCategory").value,description:$("expenseDescription").value.trim(),receipt,createdAt:Date.now()});
-    if(saveState()){e.target.reset();hidePanel("expensePanel");renderDashboard();toast("Gasto guardado correctamente.");}
+    if(saveState()){e.target.reset();hidePanel("expensePanel");renderDashboard();renderAdmin();toast("Gasto guardado correctamente.");}
   });
   function readFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
   $("exportBtn").addEventListener("click",()=>{
