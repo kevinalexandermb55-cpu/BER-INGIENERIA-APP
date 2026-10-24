@@ -4,87 +4,119 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07172d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <meta name="description" content="BER Ingeniería SAS — control de viáticos y gastos.">
   <title>BER Ingeniería | Control de viáticos</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./styles.css">
+  <style>
+:root{--navy:#07172d;--navy2:#0d2747;--navy3:#15385f;--gold:#d9a62e;--gold-light:#f6d56a;--paper:#f4f6f9;--white:#fff;--ink:#17243a;--muted:#778397;--line:#e3e8ef;--green:#18856a;--red:#b64a4a;--shadow:0 18px 50px rgba(7,23,45,.09)}
+*{box-sizing:border-box}html{min-height:100%;scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.splash{position:fixed;inset:0;z-index:20;background:radial-gradient(ellipse at 50% 35%,#16385b 0%,var(--navy) 62%);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;transition:opacity .65s ease,visibility .65s ease}.splash.out{opacity:0;visibility:hidden}.splash-mark{display:flex;gap:7px;font-family:Manrope,sans-serif;font-weight:800;font-size:clamp(4.5rem,23vw,7.5rem);letter-spacing:-.1em;line-height:1}.splash-mark span{color:var(--gold-light);text-shadow:0 0 12px #d9a62e77,0 0 36px #d9a62e44;animation:letterIn .65s both}.splash-mark span:nth-child(2){animation-delay:.18s}.splash-mark span:nth-child(3){animation-delay:.36s}.splash-line{width:120px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:26px 0 18px;animation:lineIn 1s .3s both}.splash p{margin:0;font:700 13px Manrope,sans-serif;letter-spacing:.26em}.splash small{margin-top:9px;color:#b9c4d3;font-size:9px;letter-spacing:.19em}@keyframes letterIn{from{opacity:0;transform:translateY(15px) scale(.92)}to{opacity:1;transform:none}}@keyframes lineIn{from{width:0;opacity:0}to{width:120px;opacity:1}}
+.app-shell{max-width:760px;margin:0 auto;min-height:100vh;background:var(--paper);padding-bottom:30px}.topbar{height:76px;background:var(--navy);display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid #ffffff12}.brand{display:flex;align-items:center;gap:12px;color:white;text-decoration:none}.brand-mark{display:flex;align-items:center;gap:1px;font:800 25px Manrope,sans-serif;letter-spacing:-.12em;color:var(--gold-light)}.brand-copy{display:flex;flex-direction:column;line-height:1.25}.brand-copy strong{font:800 12px Manrope,sans-serif;letter-spacing:.07em}.brand-copy em{font-style:normal;color:var(--gold-light)}.brand-copy small{font-size:9px;letter-spacing:.17em;color:#aab7c9;margin-top:4px}.icon-button{border:1px solid #ffffff3b;background:#ffffff0c;color:var(--gold-light);height:38px;width:38px;border-radius:12px;font-size:24px}
+main{padding:0 18px}.welcome{padding:34px 5px 26px}.eyebrow,.step-label{font:700 10px Manrope,sans-serif;letter-spacing:.16em;color:#8a6a20}.eyebrow{display:flex;align-items:center;gap:8px;color:#8a6a20}.live-dot{height:7px;width:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px #d9a62e22}.welcome h1{font:800 clamp(32px,8vw,48px)/1.1 Manrope,sans-serif;letter-spacing:-.055em;color:var(--navy);margin:16px 0 13px}.welcome h1 span{color:#b58720}.welcome-copy{max-width:440px;color:#667489;margin:0;font-size:15px;line-height:1.65}
+.panel{background:white;border:1px solid #e9edf2;border-radius:20px;padding:22px 18px;margin-bottom:18px;box-shadow:var(--shadow)}.section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:22px}.section-heading h2,.dashboard-head h2{margin:5px 0 0;font:800 20px/1.25 Manrope,sans-serif;letter-spacing:-.035em;color:var(--navy)}.number-badge{height:32px;min-width:32px;display:grid;place-items:center;border-radius:10px;background:#fbf2d9;color:#8c6819;font:800 11px Manrope,sans-serif}.field-label{display:block;color:#46546a;font-weight:700;font-size:12px;margin:15px 0 7px}.control{display:block;width:100%;min-height:48px;border:1px solid #dce3eb;border-radius:11px;background:#fbfcfe;padding:12px 13px;color:var(--ink);outline:none;transition:border .2s,box-shadow .2s}.control:focus{border-color:var(--gold);box-shadow:0 0 0 3px #d9a62e24;background:white}.control::placeholder{color:#a4adba}.btn{min-height:45px;padding:11px 15px;border-radius:11px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:12px;border:1px solid transparent;transition:transform .15s,background .2s}.btn:active,.action-card:active{transform:scale(.985)}.btn-primary{background:var(--navy);color:white;box-shadow:0 7px 16px #07172d1b}.btn-primary span{color:var(--gold-light);font-size:18px;line-height:1}.btn-primary:hover{background:var(--navy2)}.full{width:100%;margin-top:16px}.btn-outline{border-color:#d5dce6;background:white;color:var(--navy)}.btn-outline:hover{border-color:var(--gold)}.btn-quiet{background:#edf1f6;color:#526176;border:0;min-height:36px;padding:8px 12px}.divider{display:flex;align-items:center;gap:10px;color:#9aa4b2;font-size:11px;margin:21px 0 8px}.divider:before,.divider:after{content:"";height:1px;background:var(--line);flex:1}.form-row{display:flex;gap:9px}.form-row .control{min-width:0;flex:1}.form-row .btn{min-width:83px}.inline-form .field-label{margin-top:8px}
+.dashboard-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:6px 2px 20px}.dashboard-head p{color:var(--muted);font-size:13px;margin:7px 0 0}.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.summary-card{position:relative;overflow:hidden;min-height:122px;background:white;border:1px solid #e8edf2;border-radius:16px;padding:16px;box-shadow:0 8px 22px #07172d08}.summary-card>span{display:block;font-size:11px;color:#758195;font-weight:600}.summary-card strong{display:block;font:800 clamp(19px,5vw,25px) Manrope,sans-serif;color:var(--navy);margin:10px 0 5px;letter-spacing:-.04em;overflow-wrap:anywhere}.summary-card small{font-size:10px;color:#98a2b0}.summary-primary{grid-column:1/-1;min-height:142px;background:linear-gradient(120deg,var(--navy),#10365c);border:0}.summary-primary>span,.summary-primary small{color:#c1ccda}.summary-primary strong{color:var(--gold-light);font-size:clamp(28px,7vw,36px);position:relative;z-index:1}.summary-orb{position:absolute;width:150px;height:150px;border:1px solid #d9a62e33;border-radius:50%;right:-38px;top:18px;box-shadow:0 0 0 18px #d9a62e0a,0 0 0 36px #d9a62e08}.content-heading{margin:31px 2px 15px}.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:18px}.action-card{position:relative;text-align:left;min-height:151px;padding:17px 14px;border:1px solid #e2e8ef;border-radius:17px;background:white;box-shadow:0 8px 22px #07172d07;display:flex;flex-direction:column;align-items:flex-start;transition:transform .15s}.action-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;font-size:22px;margin-bottom:13px}.gold-icon{background:#fbf0cf;color:#906b13}.navy-icon{background:#e8eef7;color:var(--navy)}.action-card strong{font:800 13px Manrope,sans-serif;color:var(--navy)}.action-card small{font-size:10px;color:#8692a3;margin-top:5px;max-width:140px}.action-arrow{position:absolute;right:13px;top:16px;color:#b4bdc9;font-size:16px}
+.form-panel{border-top:3px solid var(--gold)}.close-panel{border:0;border-radius:9px;width:32px;height:32px;background:#f1f4f8;color:#657184;font-size:22px}.file-control{padding:9px;font-size:12px}.field-help{font-size:11px;line-height:1.5;color:#8a95a5;margin:8px 0}.history-panel{padding-bottom:14px}.count-pill{border-radius:30px;background:#eef2f7;color:#56657a;font-size:11px;font-weight:700;padding:5px 10px}.history-list{display:flex;flex-direction:column}.empty-state{text-align:center;padding:25px 12px 28px}.empty-icon{margin:0 auto 12px;display:grid;place-items:center;width:42px;height:42px;background:#f8efd6;color:#97721e;border-radius:14px;font-size:23px}.empty-state strong{display:block;font:800 14px Manrope,sans-serif;color:var(--navy)}.empty-state p{font-size:12px;color:#8a95a5;margin:7px 0 0}.movement{display:flex;align-items:center;gap:11px;padding:14px 0;border-bottom:1px solid #edf0f4}.movement:last-child{border-bottom:0}.movement-icon{flex:0 0 39px;height:39px;border-radius:12px;display:grid;place-items:center;font-size:18px}.movement-icon.advance{background:#e2f4ed;color:var(--green)}.movement-icon.expense{background:#fbebeb;color:var(--red)}.movement-info{flex:1;min-width:0}.movement-info strong{display:block;color:var(--navy);font-size:12px;overflow-wrap:anywhere}.movement-info small{display:block;color:#8a95a5;font-size:10px;margin-top:4px}.movement-amount{text-align:right;font:800 12px Manrope,sans-serif;white-space:nowrap}.movement-amount.positive{color:var(--green)}.movement-amount.negative{color:var(--red)}.receipt-link{display:inline-block;color:#9a741d;font-size:10px;margin-top:4px;text-decoration:none}.history-footer{padding-top:13px;border-top:1px solid #edf0f4}.history-footer .btn{width:100%}.privacy-note{display:flex;gap:12px;margin:23px 3px 8px;padding:15px;background:#eaf0f6;border:1px solid #dce5ee;border-radius:14px}.lock-icon{flex:0 0 28px;height:28px;display:grid;place-items:center;border-radius:9px;background:white;color:#8d6c1c;font-size:20px}.privacy-note strong{font-size:11px;color:var(--navy)}.privacy-note p{font-size:10px;line-height:1.6;color:#6d7b8e;margin:4px 0 0}footer{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:25px 15px 5px;color:#8490a1;font-size:9px;letter-spacing:.1em}footer .footer-mark{font:800 16px Manrope,sans-serif;letter-spacing:-.1em;color:#a47a1d}footer small{flex-basis:100%;text-align:center;letter-spacing:0;margin-top:1px}.toast{position:fixed;z-index:30;bottom:20px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;max-width:calc(100% - 32px);padding:12px 17px;border-radius:12px;background:var(--navy);color:white;box-shadow:0 12px 35px #07172d44;font-size:12px;transition:opacity .2s,transform .2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(min-width:620px){main{padding:0 30px}.topbar{padding:0 30px}.welcome{padding-top:44px}.panel{padding:26px}.summary-grid{grid-template-columns:repeat(3,1fr)}.summary-primary{grid-column:auto}.summary-card{min-height:136px}.summary-primary strong{font-size:25px}.action-card{padding:19px;min-height:160px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Logo original BER y ajustes móviles */
+.splash-logo{width:clamp(112px,34vw,174px);height:auto;object-fit:contain;margin-top:18px;border-radius:8px;animation:logoIn .9s .35s both;box-shadow:0 12px 35px #00000022}
+@keyframes logoIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+.brand-logo{display:block;width:48px;height:48px;object-fit:contain;border-radius:6px;flex:0 0 auto;background:#eaf1f8}
+@media(max-height:650px){.splash-mark{font-size:clamp(3.3rem,16vw,5rem)}.splash-logo{width:105px;margin-top:10px}.splash-line{margin:13px 0 10px}.splash p{font-size:11px}.splash small{font-size:8px}}
+@media(max-width:380px){.topbar{padding:0 12px}.brand{gap:8px}.brand-logo{width:42px;height:42px}.brand-copy strong{font-size:10px}.brand-copy small{font-size:8px}.icon-button{width:36px;height:36px}}
+
+/* Ajustes de presentación corporativa y uso táctil */
+.brand-logo{background:#f5f8fc;padding:3px;border:1px solid #d9e1eb;box-shadow:0 2px 9px #0000001a}
+.splash-logo{background:#f5f8fc;padding:5px;border:1px solid #d9e1eb;box-shadow:0 12px 35px #00000025}
+.receipt-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.receipt-delete{border:0;background:#fff0f0;color:#9d3e3e;border-radius:7px;padding:5px 8px;font-size:10px;font-weight:700}
+.receipt-delete:focus-visible,.btn:focus-visible,.action-card:focus-visible,.icon-button:focus-visible{outline:3px solid #d9a62e;outline-offset:3px}
+@media(max-width:360px){main{padding:0 12px}.welcome{padding-top:27px}.panel{padding:18px 14px}.summary-card{padding:13px}.action-card{padding:14px 11px}}
+
+  </style>
 </head>
 <body>
   <div id="splash" class="splash" aria-label="BER Ingeniería">
-    <div class="splash-mark"><span>B</span><span>E</span><span>R</span></div>
+    <div class="splash-mark" aria-label="BER"><span>B</span><span>E</span><span>R</span></div>
+    <img class="splash-logo" src="img/logo-ber-original.png" alt="Logo original de BER Ingeniería SAS" width="180" height="176">
     <div class="splash-line"></div>
     <p>INGENIERÍA S.A.S.</p>
-    <small>CONTROL DE VIÁTICOS Y GASTOS</small>
+    <small>GESTIÓN Y CONTROL DE VIÁTICOS</small>
   </div>
 
   <div id="app" class="app-shell hidden">
     <header class="topbar">
       <a class="brand" href="#" aria-label="BER Ingeniería inicio">
-        <span class="brand-mark"><b>B</b><b>E</b><b>R</b></span>
-        <span class="brand-copy"><strong>BER <em>INGENIERÍA</em></strong><small>CONTROL DE GASTOS</small></span>
+        <img class="brand-logo" src="img/logo-ber-original.png" alt="Logo BER Ingeniería SAS" width="54" height="52">
+        <span class="brand-copy"><strong>BER <em>INGENIERÍA S.A.S.</em></strong><small>GESTIÓN DE VIÁTICOS</small></span>
       </a>
-      <button id="installBtn" class="icon-button install-btn hidden" type="button" aria-label="Instalar aplicación">＋</button>
+      <button id="installBtn" class="icon-button install-btn" type="button" aria-label="Instalar aplicación" title="Instalar aplicación">＋</button>
     </header>
 
     <main>
       <section class="welcome">
         <div class="eyebrow"><span class="live-dot"></span> GESTIÓN DE VIÁTICOS</div>
-        <h1>Control claro.<br><span>Decisiones seguras.</span></h1>
-        <p class="welcome-copy">Registra anticipos, organiza tus gastos y consulta tu saldo en un solo lugar.</p>
+        <h1>Viáticos bajo control.<br><span>Información en orden.</span></h1>
+        <p class="welcome-copy">Registra anticipos, reporta gastos y conserva los soportes de cada desplazamiento en un solo lugar.</p>
       </section>
 
       <section id="profilePanel" class="panel profile-panel">
         <div class="section-heading">
-          <div><span class="step-label">ACCESO PERSONAL</span><h2>¿Quién está registrando?</h2></div>
+          <div><span class="step-label">ACCESO PERSONAL</span><h2>Acceso al registro</h2></div>
           <span class="number-badge">01</span>
         </div>
-        <label for="employeeSelect" class="field-label">Selecciona tu perfil</label>
+        <label for="employeeSelect" class="field-label">Empleado</label>
         <select id="employeeSelect" class="control">
           <option value="">Selecciona tu nombre</option>
         </select>
-        <button id="enterBtn" class="btn btn-primary full" type="button">Entrar a mi registro <span>→</span></button>
-        <div class="divider"><span>O crea un perfil nuevo</span></div>
+        <button id="enterBtn" class="btn btn-primary full" type="button">Consultar mis movimientos <span>→</span></button>
+        <div class="divider"><span>¿Primera vez? Crea un perfil de demostración</span></div>
         <form id="employeeForm" class="inline-form">
-          <label for="employeeName" class="field-label">Nombre completo</label>
+          <label for="employeeName" class="field-label">Nombre y apellidos</label>
           <div class="form-row">
             <input id="employeeName" class="control" type="text" placeholder="Ej. María Pérez" maxlength="80" required>
-            <button class="btn btn-outline" type="submit">Crear</button>
+            <button class="btn btn-outline" type="submit">Crear perfil</button>
           </div>
         </form>
       </section>
 
       <section id="dashboard" class="hidden">
         <div class="dashboard-head">
-          <div><span class="step-label">TU ESPACIO DE TRABAJO</span><h2>Hola, <span id="employeeGreeting">equipo</span></h2><p>Este es el resumen de tus movimientos.</p></div>
+          <div><span class="step-label">PANEL DEL EMPLEADO</span><h2>Hola, <span id="employeeGreeting">equipo</span></h2><p>Consulta tus anticipos, gastos y saldo registrado.</p></div>
           <button id="changeProfileBtn" class="btn btn-quiet" type="button">Cambiar</button>
         </div>
         <div class="summary-grid">
-          <article class="summary-card summary-primary"><span>Saldo disponible</span><strong id="balanceValue">$0</strong><small id="balanceCaption">Anticipos menos gastos</small><div class="summary-orb"></div></article>
-          <article class="summary-card"><span>Viáticos recibidos</span><strong id="advancesValue">$0</strong><small>Anticipos registrados</small></article>
-          <article class="summary-card"><span>Gastos registrados</span><strong id="expensesValue">$0</strong><small>Movimientos cargados</small></article>
+          <article class="summary-card summary-primary"><span>Saldo por legalizar</span><strong id="balanceValue">$0</strong><small id="balanceCaption">Anticipos menos gastos</small><div class="summary-orb"></div></article>
+          <article class="summary-card"><span>Anticipos registrados</span><strong id="advancesValue">$0</strong><small>Anticipos registrados</small></article>
+          <article class="summary-card"><span>Gastos reportados</span><strong id="expensesValue">$0</strong><small>Movimientos cargados</small></article>
         </div>
 
-        <div class="section-heading content-heading"><div><span class="step-label">MOVIMIENTOS</span><h2>Gestiona tu dinero</h2></div><span class="number-badge">02</span></div>
+        <div class="section-heading content-heading"><div><span class="step-label">MOVIMIENTOS</span><h2>Movimientos de viáticos</h2></div><span class="number-badge">02</span></div>
         <div class="action-grid">
-          <button id="showAdvanceBtn" class="action-card" type="button"><span class="action-icon gold-icon">＋</span><strong>Registrar viático</strong><small>Agregar dinero recibido</small><span class="action-arrow">↗</span></button>
-          <button id="showExpenseBtn" class="action-card" type="button"><span class="action-icon navy-icon">↘</span><strong>Registrar gasto</strong><small>Guardar un gasto o recibo</small><span class="action-arrow">↗</span></button>
+          <button id="showAdvanceBtn" class="action-card" type="button"><span class="action-icon gold-icon">＋</span><strong>Registrar anticipo</strong><small>Registrar dinero recibido</small><span class="action-arrow">↗</span></button>
+          <button id="showExpenseBtn" class="action-card" type="button"><span class="action-icon navy-icon">↘</span><strong>Registrar gasto</strong><small>Registrar gasto y soporte</small><span class="action-arrow">↗</span></button>
         </div>
 
         <section id="advancePanel" class="panel form-panel hidden">
-          <div class="section-heading"><div><span class="step-label">NUEVO MOVIMIENTO</span><h2>Viático recibido</h2></div><button class="close-panel" data-close="advancePanel" type="button" aria-label="Cerrar">×</button></div>
+          <div class="section-heading"><div><span class="step-label">NUEVO MOVIMIENTO</span><h2>Registrar anticipo</h2></div><button class="close-panel" data-close="advancePanel" type="button" aria-label="Cerrar">×</button></div>
           <form id="advanceForm">
-            <label class="field-label" for="advanceAmount">Valor recibido (COP)</label>
+            <label class="field-label" for="advanceAmount">Valor del anticipo (COP)</label>
             <input id="advanceAmount" class="control" type="number" min="1" step="1" placeholder="Ej. 250000" required>
-            <label class="field-label" for="advanceDate">Fecha de recepción</label>
+            <label class="field-label" for="advanceDate">Fecha de entrega</label>
             <input id="advanceDate" class="control" type="date" required>
-            <label class="field-label" for="advancePurpose">Motivo o destino</label>
+            <label class="field-label" for="advancePurpose">Proyecto, destino o motivo</label>
             <input id="advancePurpose" class="control" type="text" maxlength="140" placeholder="Ej. Visita técnica en Cali" required>
-            <button class="btn btn-primary full" type="submit">Guardar viático <span>→</span></button>
+            <button class="btn btn-primary full" type="submit">Guardar anticipo <span>→</span></button>
           </form>
         </section>
 
         <section id="expensePanel" class="panel form-panel hidden">
-          <div class="section-heading"><div><span class="step-label">NUEVO MOVIMIENTO</span><h2>Registrar un gasto</h2></div><button class="close-panel" data-close="expensePanel" type="button" aria-label="Cerrar">×</button></div>
+          <div class="section-heading"><div><span class="step-label">NUEVO MOVIMIENTO</span><h2>Nuevo gasto</h2></div><button class="close-panel" data-close="expensePanel" type="button" aria-label="Cerrar">×</button></div>
           <form id="expenseForm">
             <label class="field-label" for="expenseAmount">Valor del gasto (COP)</label>
             <input id="expenseAmount" class="control" type="number" min="1" step="1" placeholder="Ej. 38500" required>
@@ -92,29 +124,179 @@
             <input id="expenseDate" class="control" type="date" required>
             <label class="field-label" for="expenseCategory">Categoría</label>
             <select id="expenseCategory" class="control" required>
-              <option value="">Selecciona una categoría</option><option>Transporte</option><option>Alimentación</option><option>Hospedaje</option><option>Combustible</option><option>Peajes y parqueaderos</option><option>Materiales e insumos</option><option>Otros</option>
+              <option value="">Selecciona una categoría</option><option>Transporte</option><option>Alimentación</option><option>Hotel / alojamiento</option><option>Combustible</option><option>Peajes y parqueaderos</option><option>Materiales e insumos</option><option>Otros</option>
             </select>
             <label class="field-label" for="expenseDescription">Descripción</label>
             <input id="expenseDescription" class="control" type="text" maxlength="160" placeholder="¿Qué pagaste y para qué?" required>
-            <label class="field-label" for="expenseReceipt">Soporte (foto o PDF, opcional)</label>
+            <label class="field-label" for="expenseReceipt">Comprobante (fotografía o PDF)</label>
             <input id="expenseReceipt" class="control file-control" type="file" accept="image/*,.pdf">
-            <p class="field-help">Para esta versión de prueba, usa soportes pequeños. Se guardan únicamente en este navegador.</p>
+            <p class="field-help">Adjunta una foto de la factura o recibo. En esta demo, el archivo se conserva únicamente en este navegador y dispositivo.</p>
             <button class="btn btn-primary full" type="submit">Guardar gasto <span>→</span></button>
           </form>
         </section>
 
         <section class="panel history-panel">
-          <div class="section-heading"><div><span class="step-label">TU ACTIVIDAD</span><h2>Historial de movimientos</h2></div><span id="movementCount" class="count-pill">0</span></div>
+          <div class="section-heading"><div><span class="step-label">TU ACTIVIDAD</span><h2>Historial de anticipos y gastos</h2></div><span id="movementCount" class="count-pill">0</span></div>
           <div id="historyList" class="history-list"><div class="empty-state"><span class="empty-icon">↗</span><strong>Aún no hay movimientos</strong><p>Cuando registres un viático o gasto, aparecerá aquí.</p></div></div>
-          <div class="history-footer"><button id="exportBtn" class="btn btn-outline" type="button">Exportar resumen CSV</button></div>
+          <div class="history-footer"><button id="exportBtn" class="btn btn-outline" type="button">Descargar reporte CSV</button></div>
         </section>
       </section>
 
-      <section class="privacy-note"><span class="lock-icon">◇</span><div><strong>Versión de prueba</strong><p>Los datos se guardan en este dispositivo y navegador. Aún no se sincronizan con la administración ni con otros celulares.</p></div></section>
+      <section class="privacy-note"><span class="lock-icon">◇</span><div><strong>Demostración funcional</strong><p>Los registros de esta versión se guardan en este dispositivo. No se envían todavía a una base de datos central ni se comparten con administración.</p></div></section>
     </main>
-    <footer><span class="footer-mark">BER</span><span>INGENIERÍA S.A.S.</span><small>Control interno de viáticos · v1.0</small></footer>
+    <footer><span class="footer-mark">BER</span><span>INGENIERÍA S.A.S.</span><small>Herramienta de demostración · Control interno de gastos</small></footer>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js"></script>
+  <script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const STORE = "ber_viaticos_demo_v2";
+  let state = loadState();
+  let activeEmployee = null;
+  let deferredPrompt = null;
+
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(STORE)) || {employees: []}; }
+    catch { return {employees: []}; }
+  }
+  function saveState() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); return true; }
+    catch { toast("No hay espacio disponible. Prueba con un soporte más pequeño."); return false; }
+  }
+  function money(n) {
+    return new Intl.NumberFormat("es-CO", {style:"currency",currency:"COP",maximumFractionDigits:0}).format(Number(n)||0);
+  }
+  function today() { const d = new Date(); const pad = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  let toastTimer;
+  function toast(message) {
+    const el = $("toast"); el.textContent = message; el.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+  }
+  function getEmployee() { return state.employees.find(e => e.id === activeEmployee); }
+  function renderProfiles() {
+    const select = $("employeeSelect");
+    select.innerHTML = '<option value="">Selecciona tu nombre</option>' +
+      state.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
+  }
+  function openDashboard(id) {
+    const employee = state.employees.find(e => e.id === id);
+    if (!employee) { toast("Selecciona o crea un perfil primero."); return; }
+    activeEmployee = id;
+    $("profilePanel").classList.add("hidden");
+    $("dashboard").classList.remove("hidden");
+    $("employeeGreeting").textContent = employee.name.split(/\s+/)[0];
+    renderDashboard();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function renderDashboard() {
+    const employee = getEmployee(); if (!employee) return;
+    const advances = employee.movements.filter(m=>m.type==="advance").reduce((s,m)=>s+m.amount,0);
+    const expenses = employee.movements.filter(m=>m.type==="expense").reduce((s,m)=>s+m.amount,0);
+    $("balanceValue").textContent = money(advances-expenses);
+    $("advancesValue").textContent = money(advances);
+    $("expensesValue").textContent = money(expenses);
+    $("balanceCaption").textContent = advances-expenses < 0 ? "Gastos superiores a los anticipos" : "Anticipos menos gastos";
+    $("movementCount").textContent = employee.movements.length;
+    const list = $("historyList");
+    if (!employee.movements.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">↗</span><strong>Aún no hay movimientos</strong><p>Cuando registres un viático o gasto, aparecerá aquí.</p></div>';
+      return;
+    }
+    const sorted = [...employee.movements].sort((a,b)=>(b.date||"").localeCompare(a.date||"") || b.createdAt-a.createdAt);
+    list.innerHTML = sorted.map(m => {
+      const isAdvance = m.type === "advance";
+      const label = isAdvance ? (m.purpose || "Viático recibido") : (m.description || m.category || "Gasto");
+      const date = m.date ? new Date(m.date+"T12:00:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "";
+      const receipt = m.receipt ? `<div class="receipt-actions"><a class="receipt-link" href="${m.receipt.data}" download="${escapeHtml(m.receipt.name)}" target="_blank" rel="noopener">Ver comprobante · ${escapeHtml(m.receipt.name)}</a><button class="receipt-delete" type="button" data-remove-receipt="${m.id}">Quitar comprobante</button></div>` : "";
+      return `<article class="movement"><span class="movement-icon ${isAdvance?"advance":"expense"}">${isAdvance?"＋":"↘"}</span><div class="movement-info"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(date)}${!isAdvance && m.category ? " · "+escapeHtml(m.category):""}</small>${receipt}</div><div class="movement-amount ${isAdvance?"positive":"negative"}">${isAdvance?"+":"−"}${money(m.amount)}</div></article>`;
+    }).join("");
+    list.querySelectorAll("[data-remove-receipt]").forEach(button => button.addEventListener("click", () => {
+      const movement = employee.movements.find(m => String(m.id) === button.dataset.removeReceipt);
+      if (!movement || !movement.receipt) return;
+      if (!window.confirm("¿Quieres quitar el comprobante de este gasto? El movimiento y su valor se conservarán.")) return;
+      movement.receipt = null;
+      if (saveState()) { renderDashboard(); toast("Comprobante retirado del registro."); }
+    }));
+  }
+  function showPanel(id) {
+    ["advancePanel","expensePanel"].forEach(p=>$(p).classList.add("hidden"));
+    $(id).classList.remove("hidden"); $(id).scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  function hidePanel(id) { $(id).classList.add("hidden"); }
+  $("employeeForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const name = $("employeeName").value.trim();
+    if (!name) return;
+    if (state.employees.some(emp=>emp.name.toLocaleLowerCase()===name.toLocaleLowerCase())) { toast("Ya existe un perfil con ese nombre."); return; }
+    const employee = {id: (window.crypto && typeof window.crypto.randomUUID === "function" ? window.crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)), name, movements:[]};
+    state.employees.push(employee);
+    if (!saveState()) { state.employees.pop(); return; }
+    $("employeeName").value = ""; renderProfiles(); $("employeeSelect").value = employee.id;
+    toast("Perfil creado. Ya puedes entrar."); openDashboard(employee.id);
+  });
+  $("enterBtn").addEventListener("click",()=>openDashboard($("employeeSelect").value));
+  $("changeProfileBtn").addEventListener("click",()=>{
+    activeEmployee=null; $("dashboard").classList.add("hidden"); $("profilePanel").classList.remove("hidden");
+    $("employeeSelect").value=""; window.scrollTo({top:0,behavior:"smooth"});
+  });
+  $("showAdvanceBtn").addEventListener("click",()=>{ $("advanceDate").value=today(); showPanel("advancePanel"); });
+  $("showExpenseBtn").addEventListener("click",()=>{ $("expenseDate").value=today(); showPanel("expensePanel"); });
+  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>hidePanel(b.dataset.close)));
+  $("advanceForm").addEventListener("submit",e=>{
+    e.preventDefault(); const employee=getEmployee(); if(!employee)return;
+    const amount=Number($("advanceAmount").value);
+    if(!Number.isFinite(amount)||amount<=0){toast("Escribe un valor válido.");return;}
+    employee.movements.push({id:Date.now(),type:"advance",amount,date:$("advanceDate").value,purpose:$("advancePurpose").value.trim(),createdAt:Date.now()});
+    if(saveState()){e.target.reset();hidePanel("advancePanel");renderDashboard();toast("Viático guardado correctamente.");}
+  });
+  $("expenseForm").addEventListener("submit",async e=>{
+    e.preventDefault(); const employee=getEmployee(); if(!employee)return;
+    const amount=Number($("expenseAmount").value);
+    if(!Number.isFinite(amount)||amount<=0){toast("Escribe un valor válido.");return;}
+    const file=$("expenseReceipt").files[0]; let receipt=null;
+    if(file){
+      if(file.size>1.5*1024*1024){toast("El soporte supera 1,5 MB. Elige una imagen o PDF más pequeño.");return;}
+      try { receipt={name:file.name,type:file.type,data:await readFile(file)}; }
+      catch { toast("No se pudo leer el soporte."); return; }
+    }
+    employee.movements.push({id:Date.now(),type:"expense",amount,date:$("expenseDate").value,category:$("expenseCategory").value,description:$("expenseDescription").value.trim(),receipt,createdAt:Date.now()});
+    if(saveState()){e.target.reset();hidePanel("expensePanel");renderDashboard();toast("Gasto guardado correctamente.");}
+  });
+  function readFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
+  $("exportBtn").addEventListener("click",()=>{
+    const employee=getEmployee(); if(!employee)return;
+    const rows=[["Empleado","Tipo","Fecha","Categoría","Descripción","Valor COP","Soporte"]];
+    employee.movements.forEach(m=>rows.push([employee.name,m.type==="advance"?"Viático recibido":"Gasto",m.date||"",m.category||"",m.purpose||m.description||"",m.amount,m.receipt?.name||""]));
+    const csv="\uFEFF"+rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+    const a=document.createElement("a");a.href=url;a.download="BER_resumen_"+employee.name.trim().replace(/\s+/g,"_")+".csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    toast("Resumen CSV exportado.");
+  });
+  window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("installBtn").classList.remove("hidden");});
+  $("installBtn").classList.remove("hidden");
+  $("installBtn").addEventListener("click",async()=>{
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      try { await deferredPrompt.userChoice; } catch (_) {}
+      deferredPrompt=null;
+      return;
+    }
+    toast(/iPhone|iPad|iPod/i.test(navigator.userAgent) ? "En Safari: toca Compartir y luego ‘Añadir a pantalla de inicio’." : "En Chrome: abre ⋮ y elige ‘Instalar aplicación’ o ‘Añadir a pantalla principal’. ");
+  });
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  }
+  renderProfiles();
+  $("advanceDate").value=today(); $("expenseDate").value=today();
+  const revealApp = () => { const splash = $("splash"); const app = $("app"); if (splash) splash.classList.add("out"); if (app) app.classList.remove("hidden"); };
+  // Fail-safe: never leave the visitor stuck on the animated intro.
+  setTimeout(revealApp, 1600);
+  window.addEventListener("error", () => revealApp(), { once: true });
+})();
+  </script>
 </body>
 </html>

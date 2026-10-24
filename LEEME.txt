@@ -1,0 +1,23 @@
+BER INGENIERÍA S.A.S. — DEMOSTRACIÓN DE CONTROL DE VIÁTICOS
+
+ARCHIVOS
+- index.html: aplicación completa, con HTML, CSS y JavaScript integrados.
+- assets/ber-logo.png: logo usado en la bienvenida y el encabezado.
+- icons/: iconos para instalación en el celular.
+- manifest.json y sw.js: configuración PWA y caché.
+
+PARA VERLA RÁPIDO
+1. Extrae el ZIP.
+2. Abre index.html en Chrome en un computador. Algunas funciones de instalación solo funcionan cuando se publica en HTTPS.
+3. Para publicarla en GitHub Pages, sube TODO el contenido extraído a la raíz del repositorio, conservando las carpetas assets e icons.
+4. Espera la publicación y abre la URL de GitHub Pages en Chrome móvil. Si ves una versión vieja, recarga la página o borra los datos del sitio.
+
+FUNCIONES DE DEMOSTRACIÓN
+- Crear perfiles de empleados en el dispositivo/navegador.
+- Registrar anticipos y gastos por categoría.
+- Adjuntar un comprobante de imagen o PDF a un gasto.
+- Ver movimientos y exportar el resumen a CSV.
+- Diseño adaptable a celular y computador.
+
+LIMITACIONES IMPORTANTES
+Los datos se guardan localmente en el navegador de ese dispositivo. No hay base de datos central ni sincronización entre teléfonos o con administración. No hay transferencias bancarias automáticas. Para uso empresarial real, agregar autenticación, permisos, base de datos compartida, copias de seguridad y revisión de seguridad.
