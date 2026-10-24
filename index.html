@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07172d">
+  <meta name="description" content="Control móvil de viáticos y gastos de BER Ingeniería SAS">
+  <title>BER | Viáticos</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="intro" class="intro">
+    <div class="animated-ber"><span>B</span><span>E</span><span>R</span></div>
+    <div class="intro-company">INGENIERÍA SAS</div>
+    <div class="intro-caption">CONTROL DE VIÁTICOS Y GASTOS</div>
+  </div>
+
+  <main class="app">
+    <header class="header">
+      <div class="mini-logo"><b>B</b><b>E</b><b>R</b></div>
+      <div class="header-titles"><strong>BER INGENIERÍA SAS</strong><span>Control de viáticos</span></div>
+      <button id="installBtn" class="install-btn hidden" type="button">Instalar</button>
+    </header>
+
+    <section id="employeeScreen" class="screen">
+      <div class="welcome">
+        <span class="eyebrow">REGISTRO SENCILLO</span>
+        <h1>Controla tus<br><em>viáticos y gastos.</em></h1>
+        <p>Selecciona tu perfil o crea uno para comenzar a registrar el dinero recibido, los gastos y sus recibos.</p>
+      </div>
+      <div class="panel">
+        <label for="employeeSelect">Empleado</label>
+        <select id="employeeSelect"><option value="">Selecciona tu nombre</option></select>
+        <button id="openEmployee" class="button gold full" type="button">Entrar a mi registro</button>
+        <div class="or"><span>o</span></div>
+        <button id="showCreate" class="button outline full" type="button">Crear perfil de empleado</button>
+      </div>
+      <div id="createBox" class="panel hidden">
+        <h2>Nuevo empleado</h2>
+        <form id="createForm">
+          <label for="employeeName">Nombre completo</label>
+          <input id="employeeName" required maxlength="100" placeholder="Escribe tu nombre">
+          <button class="button gold full" type="submit">Guardar empleado</button>
+          <button id="cancelCreate" class="button text full" type="button">Cancelar</button>
+        </form>
+      </div>
+      <p class="privacy-note">Esta versión de prueba guarda la información en este celular y navegador.</p>
+    </section>
+
+    <section id="dashboardScreen" class="screen hidden">
+      <div class="dash-top">
+        <div><span class="eyebrow">MI REGISTRO</span><h1 id="helloName">Hola</h1></div>
+        <button id="changeEmployee" class="change-btn" type="button">Cambiar</button>
+      </div>
+
+      <div class="summary-card">
+        <span class="summary-label">Saldo por conciliar</span>
+        <strong id="balanceValue">$0</strong>
+        <div class="summary-bottom"><span>Viáticos recibidos <b id="advanceValue">$0</b></span><span>Gastos <b id="expenseValue">$0</b></span></div>
+      </div>
+
+      <div class="quick-stats">
+        <div class="small-stat"><span>Gastos registrados</span><strong id="expenseCount">0</strong></div>
+        <div class="small-stat"><span>Recibos adjuntos</span><strong id="receiptCount">0</strong></div>
+      </div>
+
+      <div class="section-title"><div><h2>Dinero recibido</h2><p>Registra cada entrega de viáticos.</p></div></div>
+      <div class="panel">
+        <form id="advanceForm" class="form">
+          <label for="advanceAmount">Monto recibido (COP)</label>
+          <input id="advanceAmount" type="number" min="1" step="1" inputmode="numeric" required placeholder="Ej. 800000">
+          <label for="advanceDate">Fecha de entrega</label>
+          <input id="advanceDate" type="date" required>
+          <label for="advanceNote">Motivo o destino</label>
+          <input id="advanceNote" maxlength="160" placeholder="Ej. Servicio técnico en cliente">
+          <button class="button gold full" type="submit">+ Guardar viáticos</button>
+        </form>
+      </div>
+
+      <div class="section-title"><div><h2>Registrar un gasto</h2><p>Guarda el valor y adjunta el soporte.</p></div></div>
+      <div class="panel">
+        <form id="expenseForm" class="form">
+          <label for="expenseDate">Fecha del gasto</label>
+          <input id="expenseDate" type="date" required>
+          <label for="expenseCategory">Categoría</label>
+          <select id="expenseCategory" required>
+            <option value="Hotel">Hotel</option><option value="Transporte">Transporte</option>
+            <option value="Alimentación">Alimentación</option><option value="Materiales">Materiales</option>
+            <option value="Otros">Otros</option>
+          </select>
+          <label for="expenseAmount">Valor del gasto (COP)</label>
+          <input id="expenseAmount" type="number" min="1" step="1" inputmode="numeric" required placeholder="Ej. 85000">
+          <label for="expenseDescription">Descripción</label>
+          <input id="expenseDescription" maxlength="180" required placeholder="¿En qué se gastó el dinero?">
+          <label for="expenseReceipt">Foto o PDF del recibo</label>
+          <input id="expenseReceipt" type="file" accept="image/*,application/pdf,.pdf">
+          <p class="field-help">Puedes tomar una foto con la cámara del celular o seleccionar un archivo. Máximo 8 MB por recibo en esta versión.</p>
+          <button class="button gold full" type="submit">Guardar gasto y recibo</button>
+        </form>
+      </div>
+
+      <div class="section-title list-title"><div><h2>Historial de movimientos</h2><p>Los totales se actualizan automáticamente.</p></div></div>
+      <div id="historyList" class="history-list"></div>
+      <div class="bottom-actions">
+        <button id="exportBtn" class="button outline" type="button">Descargar resumen CSV</button>
+        <button id="deleteProfileBtn" class="button danger-outline" type="button">Eliminar perfil y datos</button>
+      </div>
+      <p class="disclaimer">El saldo es una referencia para conciliación. No significa automáticamente que el empleado deba devolver dinero. El contador debe revisar los recibos y el tratamiento contable antes de registrar los gastos.</p>
+    </section>
+    <div id="toast" class="toast hidden" role="status"></div>
+    <footer><span>BER INGENIERÍA SAS</span><small>Control interno · Versión móvil</small></footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
