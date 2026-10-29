@@ -1,12 +1,15 @@
 {
-  "name": "BER Ingeniería SAS — Control de viáticos",
+  "id": "./",
+  "name": "BER Ingeniería | Control de Viáticos",
   "short_name": "BER Viáticos",
-  "description": "Control interno de viáticos y gastos de BER Ingeniería SAS.",
+  "description": "Control corporativo de viáticos, gastos y comprobantes.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#07172d",
   "theme_color": "#07172d",
-  "orientation": "portrait",
-  "icons": []
+  "icons": [
+    {"src":"./assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
 }
