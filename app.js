@@ -1,130 +1,259 @@
-(() => {
-  "use strict";
-  const $ = (id) => document.getElementById(id);
-  const STORE = "ber_viaticos_profesional_v1";
-  let state = loadState();
-  let activeEmployee = null;
-  let deferredPrompt = null;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+  createUserWithEmailAndPassword, signOut
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, addDoc, collection, query,
+  where, getDocs, deleteDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import firebaseConfig from "./firebase-config.js";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, RECEIPT_BUCKET } from "./supabase-config.js";
 
-  function loadState() {
-    try { return JSON.parse(localStorage.getItem(STORE)) || {employees: []}; }
-    catch { return {employees: []}; }
-  }
-  function saveState() {
-    try { localStorage.setItem(STORE, JSON.stringify(state)); return true; }
-    catch { toast("No hay espacio disponible. Prueba con un soporte más pequeño."); return false; }
-  }
-  function money(n) {
-    return new Intl.NumberFormat("es-CO", {style:"currency",currency:"COP",maximumFractionDigits:0}).format(Number(n)||0);
-  }
-  function today() { return new Date().toLocaleDateString("en-CA"); }
-  function escapeHtml(s) {
-    return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  }
-  let toastTimer;
-  function toast(message) {
-    const el = $("toast"); el.textContent = message; el.classList.add("show");
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
-  }
-  function getEmployee() { return state.employees.find(e => e.id === activeEmployee); }
-  function renderProfiles() {
-    const select = $("employeeSelect");
-    select.innerHTML = '<option value="">Selecciona tu nombre</option>' +
-      state.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
-  }
-  function openDashboard(id) {
-    const employee = state.employees.find(e => e.id === id);
-    if (!employee) { toast("Selecciona o crea un perfil primero."); return; }
-    activeEmployee = id;
-    $("profilePanel").classList.add("hidden");
-    $("dashboard").classList.remove("hidden");
-    $("employeeGreeting").textContent = employee.name.split(/\s+/)[0];
-    renderDashboard();
-    window.scrollTo({top:0,behavior:"smooth"});
-  }
-  function renderDashboard() {
-    const employee = getEmployee(); if (!employee) return;
-    const advances = employee.movements.filter(m=>m.type==="advance").reduce((s,m)=>s+m.amount,0);
-    const expenses = employee.movements.filter(m=>m.type==="expense").reduce((s,m)=>s+m.amount,0);
-    $("balanceValue").textContent = money(advances-expenses);
-    $("advancesValue").textContent = money(advances);
-    $("expensesValue").textContent = money(expenses);
-    $("balanceCaption").textContent = advances-expenses < 0 ? "Gastos superiores a los anticipos" : "Anticipos menos gastos";
-    $("movementCount").textContent = employee.movements.length;
-    const list = $("historyList");
-    if (!employee.movements.length) {
-      list.innerHTML = '<div class="empty-state"><span class="empty-icon">↗</span><strong>Aún no hay movimientos</strong><p>Cuando registres un viático o gasto, aparecerá aquí.</p></div>';
-      return;
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  accessToken: async () => auth.currentUser ? await auth.currentUser.getIdToken() : null
+});
+const $ = id => document.getElementById(id);
+let currentUser = null, currentProfile = null, cachedMovements = [];
+let showingAll = false, employeeUidFilter = null, busy = false;
+
+function money(value) {
+  return new Intl.NumberFormat("es-CO", {style:"currency",currency:"COP",maximumFractionDigits:0}).format(Number(value)||0);
+}
+function dateText(value) {
+  if (!value) return "Sin fecha";
+  const d = new Date(`${value}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"});
+}
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+function notice(target, text, type="") {
+  const el = $(target); if (!el) return;
+  el.textContent = text; el.className = `notice ${type}`.trim(); el.classList.remove("hidden");
+}
+function toast(text) {
+  const el = $("globalToast"); el.textContent = text; el.classList.remove("hidden");
+  setTimeout(()=>el.classList.add("hidden"),4000);
+}
+function setBusy(button, value, label) {
+  if (!button) return;
+  button.disabled = value;
+  if (value) { button.dataset.original = button.innerHTML; button.textContent = label || "Procesando…"; }
+  else if (button.dataset.original) { button.innerHTML = button.dataset.original; delete button.dataset.original; }
+}
+function friendlyError(error) {
+  const code = error?.code || "";
+  if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password") || code.includes("auth/user-not-found")) return "Correo o contraseña incorrectos.";
+  if (code.includes("auth/email-already-in-use")) return "Ese correo ya tiene una cuenta. Inicia sesión.";
+  if (code.includes("auth/weak-password")) return "Usa una contraseña de al menos 6 caracteres.";
+  if (code.includes("permission-denied")) return "Firebase bloqueó la operación. Revisa el perfil y las reglas de Firestore.";
+  if (code.includes("failed-precondition")) return "La consulta de Firestore requiere atención. Abre la consola del navegador para ver el detalle.";
+  if (/storage|row-level security|JWT|not authorized/i.test(error?.message||"")) return "No se pudo subir el comprobante. Verifica la integración Firebase Auth–Supabase y las políticas del bucket.";
+  return error?.message || "Ocurrió un error. Intenta nuevamente.";
+}
+function toggleAuthMode(signup) {
+  $("authTitle").textContent = signup ? "Crear cuenta" : "Bienvenido";
+  $("authDescription").textContent = signup ? "Crea tu acceso de empleado." : "Ingresa con tu cuenta corporativa.";
+  $("loginBtn").innerHTML = signup ? 'Crear cuenta <span>→</span>' : 'Ingresar <span>→</span>';
+  $("showSignup").textContent = signup ? "Ya tengo una cuenta. Volver al ingreso" : "¿Primera vez? Crear cuenta de empleado";
+  $("loginForm").dataset.mode = signup ? "signup" : "login";
+  $("password").autocomplete = signup ? "new-password" : "current-password";
+  $("authMessage").classList.add("hidden");
+}
+$("showSignup").addEventListener("click",()=>toggleAuthMode($("loginForm").dataset.mode !== "signup"));
+
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault(); if (busy) return;
+  const button = $("loginBtn"); busy = true; setBusy(button,true,"Validando acceso…");
+  try {
+    const email = $("email").value.trim().toLowerCase(), password = $("password").value;
+    if ($("loginForm").dataset.mode === "signup") {
+      const credential = await createUserWithEmailAndPassword(auth,email,password);
+      await setDoc(doc(db,"usuarios",credential.user.uid),{
+        uid:credential.user.uid,email:credential.user.email,nombre:email.split("@")[0],
+        rol:"empleado",activo:true,creadoEn:serverTimestamp()
+      });
+      notice("authMessage","Cuenta creada. Ya puedes registrar movimientos.","success");
+    } else {
+      await signInWithEmailAndPassword(auth,email,password);
     }
-    const sorted = [...employee.movements].sort((a,b)=>(b.date||"").localeCompare(a.date||"") || b.createdAt-a.createdAt);
-    list.innerHTML = sorted.map(m => {
-      const isAdvance = m.type === "advance";
-      const label = isAdvance ? (m.purpose || "Viático recibido") : (m.description || m.category || "Gasto");
-      const date = m.date ? new Date(m.date+"T12:00:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "";
-      const receipt = m.receipt ? `<a class="receipt-link" href="${m.receipt.data}" download="${escapeHtml(m.receipt.name)}" target="_blank" rel="noopener">Ver soporte · ${escapeHtml(m.receipt.name)}</a>` : "";
-      return `<article class="movement"><span class="movement-icon ${isAdvance?"advance":"expense"}">${isAdvance?"＋":"↘"}</span><div class="movement-info"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(date)}${!isAdvance && m.category ? " · "+escapeHtml(m.category):""}</small>${receipt}</div><div class="movement-amount ${isAdvance?"positive":"negative"}">${isAdvance?"+":"−"}${money(m.amount)}</div></article>`;
-    }).join("");
+  } catch (error) { notice("authMessage",friendlyError(error),"error"); }
+  finally { busy = false; setBusy(button,false); }
+});
+$("logoutBtn").addEventListener("click",()=>signOut(auth).catch(e=>toast(friendlyError(e))));
+$("movementDate").value = new Date().toLocaleDateString("en-CA");
+
+$("movementType").addEventListener("change",()=>{
+  const isAdvance = $("movementType").value === "viatico";
+  if (isAdvance) $("category").value = "Viático asignado";
+  else if ($("category").value === "Viático asignado") $("category").value = "Alimentación";
+  $("targetEmployeeWrap").classList.toggle("hidden", !(currentProfile?.rol === "admin"));
+});
+$("category").addEventListener("change",()=>{
+  if ($("category").value === "Viático asignado") $("movementType").value = "viatico";
+});
+
+async function loadProfile(user) {
+  const ref = doc(db,"usuarios",user.uid), snap = await getDoc(ref);
+  if (snap.exists()) return snap.data();
+  const profile = {uid:user.uid,email:user.email||"",nombre:(user.email||"empleado").split("@")[0],rol:"empleado",activo:true,creadoEn:serverTimestamp()};
+  await setDoc(ref,profile); return profile;
+}
+async function loadApp() {
+  currentProfile = await loadProfile(currentUser);
+  if (currentProfile.activo !== true) {
+    await signOut(auth);
+    throw new Error("Tu cuenta está desactivada. Contacta al administrador de BER Ingeniería.");
   }
-  function showPanel(id) {
-    ["advancePanel","expensePanel"].forEach(p=>$(p).classList.add("hidden"));
-    $(id).classList.remove("hidden"); $(id).scrollIntoView({behavior:"smooth",block:"start"});
+  const isAdmin = currentProfile.rol === "admin";
+  $("authPanel").classList.add("hidden"); $("appPanel").classList.remove("hidden"); $("logoutBtn").classList.remove("hidden");
+  $("signedUser").textContent = currentProfile.nombre || currentUser.email;
+  $("roleLabel").textContent = isAdmin ? "Administrador" : "Empleado";
+  $("avatar").textContent = (currentProfile.nombre || currentUser.email || "B").trim().charAt(0).toUpperCase();
+  $("welcomeTitle").textContent = isAdmin ? "Resumen de la empresa" : `Hola, ${currentProfile.nombre || "bienvenido"}`;
+  $("welcomeSubtitle").textContent = isAdmin ? "Consulta y supervisa los movimientos registrados." : "Consulta tus viáticos, gastos y saldo disponible.";
+  $("adminTools").classList.toggle("hidden",!isAdmin);
+  $("targetEmployeeWrap").classList.toggle("hidden",!isAdmin);
+  // El empleado no puede autoasignarse un viático desde la interfaz.
+  if (!isAdmin) {
+    const typeSelect = $("movementType");
+    typeSelect.innerHTML = '<option value="gasto">Reportar un gasto</option>';
+    typeSelect.value = "gasto"; $("category").value = "Alimentación";
+  } else {
+    $("movementType").innerHTML = '<option value="gasto">Registrar un gasto</option><option value="viatico">Asignar viático</option>';
   }
-  function hidePanel(id) { $(id).classList.add("hidden"); }
-  $("employeeForm").addEventListener("submit", e => {
+  $("connectionStatus").textContent = "Sesión activa"; $("connectionStatus").classList.add("online");
+  await loadMovements();
+}
+function sortMovements(arr) {
+  return arr.sort((a,b)=>{
+    const at = a.creadoEn?.toMillis ? a.creadoEn.toMillis() : new Date(`${a.fecha||"1970-01-01"}T12:00:00`).getTime();
+    const bt = b.creadoEn?.toMillis ? b.creadoEn.toMillis() : new Date(`${b.fecha||"1970-01-01"}T12:00:00`).getTime();
+    return bt-at;
+  });
+}
+async function loadMovements() {
+  if (!currentUser || !currentProfile) return;
+  const isAdmin = currentProfile.rol === "admin";
+  let snap;
+  if (isAdmin && showingAll && !employeeUidFilter) {
+    snap = await getDocs(collection(db,"movimientos"));
+  } else {
+    const uid = isAdmin && employeeUidFilter ? employeeUidFilter : currentUser.uid;
+    snap = await getDocs(query(collection(db,"movimientos"),where("uid","==",uid)));
+  }
+  cachedMovements = sortMovements(snap.docs.map(d=>({id:d.id,...d.data()})));
+  renderMovements();
+}
+function renderMovements() {
+  const list = $("movementsList"), movements = cachedMovements;
+  const advances = movements.filter(m=>m.tipo==="viatico").reduce((s,m)=>s+Number(m.valor||0),0);
+  const expenses = movements.filter(m=>m.tipo==="gasto").reduce((s,m)=>s+Number(m.valor||0),0);
+  $("totalAdvances").textContent=money(advances); $("totalExpenses").textContent=money(expenses); $("balance").textContent=money(advances-expenses);
+  if (!movements.length) {
+    list.innerHTML='<div class="empty-state"><span>◇</span><strong>Aún no hay movimientos</strong><p>Cuando registres un viático o gasto, aparecerá aquí.</p></div>'; return;
+  }
+  list.innerHTML = movements.map(m=>{
+    const advance=m.tipo==="viatico";
+    const icons={"Alimentación":"☕","Transporte":"↗","Hotel":"⌂","Combustible":"⛽","Peajes y parqueaderos":"⌁","Materiales":"▦"};
+    const attachment=m.comprobante?`<a href="#" data-receipt="${escapeHTML(m.comprobante)}" class="receipt-link">Ver comprobante ↗</a>`:"";
+    const adminDelete=currentProfile.rol==="admin"?`<div class="movement-actions"><button class="tiny-btn" data-delete="${escapeHTML(m.id)}" type="button">Eliminar</button></div>`:"";
+    const who=currentProfile.rol==="admin"?`<small>Empleado: ${escapeHTML(m.emailEmpleado||"sin correo")}</small>`:"";
+    return `<article class="movement-item"><div class="movement-icon">${advance?"↙":(icons[m.categoria]||"↗")}</div><div class="movement-info"><strong>${escapeHTML(m.categoria||(advance?"Viático":"Gasto"))}</strong><small>${dateText(m.fecha)} · ${escapeHTML(m.descripcion||"Sin descripción")}</small>${who}${attachment}${adminDelete}</div><div class="movement-amount ${advance?"advance":"expense"}">${advance?"+":"−"} ${money(m.valor)}</div></article>`;
+  }).join("");
+  list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("¿Eliminar este movimiento? Esta acción no se puede deshacer.")) return;
+    try { await deleteDoc(doc(db,"movimientos",btn.dataset.delete)); toast("Movimiento eliminado."); await loadMovements(); }
+    catch(e){toast(friendlyError(e));}
+  }));
+  list.querySelectorAll("[data-receipt]").forEach(link=>link.addEventListener("click",async e=>{
     e.preventDefault();
-    const name = $("employeeName").value.trim();
-    if (!name) return;
-    if (state.employees.some(emp=>emp.name.toLocaleLowerCase()===name.toLocaleLowerCase())) { toast("Ya existe un perfil con ese nombre."); return; }
-    const employee = {id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())), name, movements:[]};
-    state.employees.push(employee);
-    if (!saveState()) { state.employees.pop(); return; }
-    $("employeeName").value = ""; renderProfiles(); $("employeeSelect").value = employee.id;
-    toast("Perfil creado. Ya puedes entrar."); openDashboard(employee.id);
-  });
-  $("enterBtn").addEventListener("click",()=>openDashboard($("employeeSelect").value));
-  $("changeProfileBtn").addEventListener("click",()=>{
-    activeEmployee=null; $("dashboard").classList.add("hidden"); $("profilePanel").classList.remove("hidden");
-    $("employeeSelect").value=""; window.scrollTo({top:0,behavior:"smooth"});
-  });
-  $("showAdvanceBtn").addEventListener("click",()=>{ $("advanceDate").value=today(); showPanel("advancePanel"); });
-  $("showExpenseBtn").addEventListener("click",()=>{ $("expenseDate").value=today(); showPanel("expensePanel"); });
-  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>hidePanel(b.dataset.close)));
-  $("advanceForm").addEventListener("submit",e=>{
-    e.preventDefault(); const employee=getEmployee(); if(!employee)return;
-    const amount=Number($("advanceAmount").value);
-    if(!Number.isFinite(amount)||amount<=0){toast("Escribe un valor válido.");return;}
-    employee.movements.push({id:Date.now(),type:"advance",amount,date:$("advanceDate").value,purpose:$("advancePurpose").value.trim(),createdAt:Date.now()});
-    if(saveState()){e.target.reset();hidePanel("advancePanel");renderDashboard();toast("Viático guardado correctamente.");}
-  });
-  $("expenseForm").addEventListener("submit",async e=>{
-    e.preventDefault(); const employee=getEmployee(); if(!employee)return;
-    const amount=Number($("expenseAmount").value);
-    if(!Number.isFinite(amount)||amount<=0){toast("Escribe un valor válido.");return;}
-    const file=$("expenseReceipt").files[0]; let receipt=null;
-    if(file){
-      if(file.size>1.5*1024*1024){toast("El soporte supera 1,5 MB. Elige una imagen o PDF más pequeño.");return;}
-      try { receipt={name:file.name,type:file.type,data:await readFile(file)}; }
-      catch { toast("No se pudo leer el soporte."); return; }
-    }
-    employee.movements.push({id:Date.now(),type:"expense",amount,date:$("expenseDate").value,category:$("expenseCategory").value,description:$("expenseDescription").value.trim(),receipt,createdAt:Date.now()});
-    if(saveState()){e.target.reset();hidePanel("expensePanel");renderDashboard();toast("Gasto guardado correctamente.");}
-  });
-  function readFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
-  $("exportBtn").addEventListener("click",()=>{
-    const employee=getEmployee(); if(!employee)return;
-    const rows=[["Empleado","Tipo","Fecha","Categoría","Descripción","Valor COP","Soporte"]];
-    employee.movements.forEach(m=>rows.push([employee.name,m.type==="advance"?"Viático recibido":"Gasto",m.date||"",m.category||"",m.purpose||m.description||"",m.amount,m.receipt?.name||""]));
-    const csv="\uFEFF"+rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
-    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
-    const a=document.createElement("a");a.href=url;a.download="BER_resumen_"+employee.name.trim().replace(/\s+/g,"_")+".csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-    toast("Resumen CSV exportado.");
-  });
-  window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("installBtn").classList.remove("hidden");});
-  $("installBtn").addEventListener("click",async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$("installBtn").classList.add("hidden");});
-  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+    try {
+      const {data,error}=await supabase.storage.from(RECEIPT_BUCKET).createSignedUrl(link.dataset.receipt,60);
+      if(error) throw error;
+      window.open(data.signedUrl,"_blank","noopener,noreferrer");
+    } catch(err) { console.error(err); toast("No se pudo abrir el comprobante. Revisa las políticas de Storage en Supabase."); }
+  }));
+}
+async function findEmployeeByEmail(email) {
+  const snap=await getDocs(query(collection(db,"usuarios"),where("email","==",email)));
+  if(snap.empty) return null;
+  const d=snap.docs[0]; return {uid:d.id,...d.data()};
+}
+$("movementForm").addEventListener("submit",async event=>{
+  event.preventDefault(); if(!currentUser||!currentProfile||busy) return;
+  const isAdmin=currentProfile.rol==="admin", tipo=$("movementType").value, amount=Number($("amount").value);
+  if(!Number.isFinite(amount)||amount<=0) return notice("formMessage","Escribe un valor mayor que cero.","error");
+  if(!isAdmin && tipo!=="gasto") return notice("formMessage","Solo un administrador puede asignar viáticos.","error");
+  let recipient={uid:currentUser.uid,email:currentUser.email||"",nombre:currentProfile.nombre||""};
+  if(isAdmin){
+    const targetEmail=$("targetEmployee").value.trim().toLowerCase();
+    if(!targetEmail) return notice("formMessage","Escribe el correo del empleado destinatario.","error");
+    try { const found=await findEmployeeByEmail(targetEmail); if(!found) return notice("formMessage","No existe un perfil de empleado con ese correo. Pídele que cree su cuenta primero.","error"); recipient={uid:found.uid,email:found.email||targetEmail,nombre:found.nombre||""}; }
+    catch(e){return notice("formMessage",friendlyError(e),"error");}
   }
-  renderProfiles();
-  $("advanceDate").value=today(); $("expenseDate").value=today();
-  setTimeout(()=>{$("splash").classList.add("out");$("app").classList.remove("hidden");},1900);
-})();
+  const file=$("receipt").files[0];
+  if(file&&file.size>10*1024*1024) return notice("formMessage","El comprobante supera 10 MB.","error");
+  if(file&&!(file.type.startsWith("image/")||file.type==="application/pdf")) return notice("formMessage","Solo se permiten imágenes o PDF.","error");
+  busy=true;setBusy($("saveMovementBtn"),true,"Guardando movimiento…");
+  let receiptPath="";
+  try {
+    if(file){
+      // Storage debe aceptar el token Firebase mediante la integración configurada en Supabase.
+      const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+      receiptPath=`${recipient.uid}/${Date.now()}_${safeName}`;
+      const {error:uploadError}=await supabase.storage.from(RECEIPT_BUCKET).upload(receiptPath,file,{upsert:false,contentType:file.type});
+      if(uploadError) throw uploadError;
+    }
+    await addDoc(collection(db,"movimientos"),{
+      uid:recipient.uid,emailEmpleado:recipient.email,nombreEmpleado:recipient.nombre,
+      tipo,fecha:$("movementDate").value,
+      categoria:tipo==="viatico"?"Viático asignado":$("category").value,
+      valor:amount,descripcion:$("description").value.trim(),
+      comprobante:receiptPath,nombreArchivo:file?file.name:"",
+      creadoPor:currentUser.uid,creadoEn:serverTimestamp()
+    });
+    $("movementForm").reset();$("movementDate").value=new Date().toLocaleDateString("en-CA");
+    $("movementType").value=currentProfile.rol==="admin"?"gasto":"gasto";$("category").value="Alimentación";
+    if(currentProfile.rol==="admin") $("targetEmployee").value="";
+    notice("formMessage","Movimiento guardado correctamente.","success");
+    showingAll=currentProfile.rol==="admin";employeeUidFilter=currentProfile.rol==="admin"?recipient.uid:null;
+    if(currentProfile.rol==="admin") $("employeeFilter").value=recipient.email;
+    await loadMovements();
+  } catch(error){
+    console.error("No se pudo guardar el movimiento:",error);
+    notice("formMessage",friendlyError(error),"error");
+  } finally {busy=false;setBusy($("saveMovementBtn"),false);}
+});
+$("refreshBtn").addEventListener("click",()=>loadMovements().catch(e=>toast(friendlyError(e))));
+$("allMovementsBtn").addEventListener("click",()=>{showingAll=true;employeeUidFilter=null;$("employeeFilter").value="";loadMovements().catch(e=>toast(friendlyError(e)));});
+$("filterEmployeeBtn").addEventListener("click",async()=>{
+  const email=$("employeeFilter").value.trim().toLowerCase(); if(!email) return toast("Escribe el correo del empleado.");
+  try {const employee=await findEmployeeByEmail(email);if(!employee) return toast("No se encontró un perfil con ese correo.");employeeUidFilter=employee.uid;showingAll=false;await loadMovements();}
+  catch(e){toast(friendlyError(e));}
+});
+$("exportBtn").addEventListener("click",()=>{
+  if(!cachedMovements.length) return toast("No hay movimientos para exportar.");
+  const cols=["fecha","emailEmpleado","tipo","categoria","valor","descripcion","nombreArchivo"];
+  const csv=[cols.join(","),...cachedMovements.map(m=>cols.map(k=>`"${String(m[k]??"").replace(/"/g,'""')}"`).join(","))].join("\r\n");
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download="BER_viaticos.csv";a.click();URL.revokeObjectURL(url);
+});
+
+onAuthStateChanged(auth,async user=>{
+  currentUser=user;
+  if(!user){currentProfile=null;cachedMovements=[];showingAll=false;employeeUidFilter=null;
+    $("authPanel").classList.remove("hidden");$("appPanel").classList.add("hidden");$("logoutBtn").classList.add("hidden");
+    $("connectionStatus").textContent="Sin sesión";$("connectionStatus").classList.remove("online");return;}
+  $("connectionStatus").textContent="Cargando datos…";
+  try{await loadApp();}
+  catch(error){console.error("BER Viáticos:",error);$("connectionStatus").textContent="Revisar conexión";toast(friendlyError(error));}
+});
+window.addEventListener("online",()=>{$("connectionStatus").textContent="Conectado";$("connectionStatus").classList.add("online");});
+window.addEventListener("offline",()=>{$("connectionStatus").textContent="Sin internet";$("connectionStatus").classList.remove("online");});
+if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(e=>console.warn("Service worker:",e)));

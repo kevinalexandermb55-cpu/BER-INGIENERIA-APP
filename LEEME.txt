@@ -1,8 +1,17 @@
-BER INGENIERÍA S.A.S. — DEMOSTRACIÓN CON VISTA DE ADMINISTRACIÓN
+BER INGENIERÍA S.A.S. — CONTROL DE VIÁTICOS Y GASTOS
+PAQUETE RECONSTRUIDO CON IDENTIDAD VISUAL ACTUALIZADA
 
-1. Mantén la estructura de carpetas al publicar. index.html queda en la raíz junto a manifest.json y sw.js; assets/ contiene el logo e icons/ los iconos.
-2. En la pantalla de acceso, pulsa “Ver comprobantes por empleado”.
-3. Crea un empleado, entra a su panel, registra un gasto y adjunta una fotografía o PDF. Luego vuelve a la vista de administración: el gasto aparece bajo el nombre del empleado y se puede abrir el comprobante.
-4. La vista ordena empleados alfabéticamente y los gastos por fecha descendente. Incluye búsqueda y filtros por comprobantes.
+CONTENIDO
+- index.html: aplicación móvil/PWA con registro de empleados, anticipos, gastos, comprobantes y vista administrativa.
+- assets/ber-logo.png: logo BER reconstruido en alta resolución.
+- icons/: iconos de la aplicación para instalación.
+- manifest.json y sw.js: configuración PWA y caché actualizada.
 
-IMPORTANTE: esta es una demostración local. Los registros y archivos se guardan en el navegador/dispositivo donde se registran. No hay sincronización entre celulares ni base de datos central. Para que el administrador vea los comprobantes que cada empleado sube desde su propio teléfono, hace falta conectar autenticación y una base de datos/almacenamiento compartidos. No usar con información real hasta implementar y probar esos componentes.
+PUBLICACIÓN EN GITHUB PAGES
+1. Descomprime este ZIP.
+2. Sube TODOS los archivos y carpetas contenidos dentro de BER_APP_RECONSTRUIDA a la raíz del repositorio GitHub Pages, reemplazando los archivos anteriores.
+3. Confirma el cambio (Commit changes) y espera a que GitHub Pages publique.
+4. En el celular, abre la página, recarga y, si se sigue viendo la versión vieja, borra los datos/caché del sitio y vuelve a abrirlo.
+
+IMPORTANTE SOBRE LOS DATOS
+Esta versión de demostración guarda los registros en el navegador/dispositivo actual. NO sincroniza automáticamente los comprobantes que se cargan desde teléfonos distintos. Para uso real de varios empleados y administración central se debe integrar autenticación y base de datos/almacenamiento compartidos, además de probar permisos, copias de seguridad y protección de datos. No registrar información real sensible hasta implementar esa infraestructura.

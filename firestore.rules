@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function profileExists(uid) {
+      return exists(/databases/$(database)/documents/usuarios/$(uid));
+    }
+    function activeUser() {
+      return signedIn()
+        && profileExists(request.auth.uid)
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
+    }
+    function isAdmin() {
+      return activeUser()
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == "admin";
+    }
+
+    match /usuarios/{userId} {
+      // El registro público solo puede crear su propio perfil como empleado.
+      allow create: if signedIn() && request.auth.uid == userId
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.rol == "empleado"
+        && request.resource.data.activo == true;
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      // Solo admin puede cambiar roles/estados de otros usuarios.
+      allow update: if isAdmin()
+        || (signedIn() && request.auth.uid == userId
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.rol == resource.data.rol
+          && request.resource.data.activo == resource.data.activo);
+      allow delete: if isAdmin();
+    }
+
+    match /movimientos/{movementId} {
+      allow create: if activeUser()
+        && request.resource.data.valor is number
+        && request.resource.data.valor > 0
+        && request.resource.data.tipo in ["viatico", "gasto"]
+        && request.resource.data.fecha is string
+        && request.resource.data.categoria is string
+        && request.resource.data.descripcion is string
+        && (
+          (isAdmin() && request.resource.data.uid is string)
+          || (request.resource.data.tipo == "gasto"
+              && request.resource.data.uid == request.auth.uid)
+        );
+      allow read: if activeUser() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+  }
+}

@@ -1,31 +1,15 @@
 {
-  "name": "BER Ingeniería SAS — Gestión de viáticos",
+  "id": "./",
+  "name": "BER Ingeniería | Control de Viáticos",
   "short_name": "BER Viáticos",
-  "description": "Gestión de anticipos, gastos y comprobantes de BER Ingeniería SAS.",
+  "description": "Control corporativo de viáticos, gastos y comprobantes.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#07172d",
   "theme_color": "#07172d",
-  "orientation": "portrait",
   "icons": [
-    {
-      "src": "./icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    {"src":"./assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
   ]
 }
