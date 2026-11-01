@@ -1,0 +1,16 @@
+{
+  "name": "ber-app",
+  "version": "1.0.0",
+  "description": "Proyecto web adaptable a celular y computadora, pensado para publicarse en GitHub Pages. Incluye splash animado de marca B‑E‑R, inicio de sesión, registro de gastos, asignación de viáticos por administrador, resumen, historial y exportación CSV.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "firebase-admin": "^14.5.0"
+  }
+}

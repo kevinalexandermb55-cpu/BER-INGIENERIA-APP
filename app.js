@@ -168,17 +168,28 @@ function renderMovements() {
   }).join("");
   list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!confirm("¿Eliminar este movimiento? Esta acción no se puede deshacer.")) return;
-    try { await deleteDoc(doc(db,"movimientos",btn.dataset.delete)); toast("Movimiento eliminado."); await loadMovements(); }
-    catch(e){toast(friendlyError(e));}
-  }));
-  list.querySelectorAll("[data-receipt]").forEach(link=>link.addEventListener("click",async e=>{
-    e.preventDefault();
-    try {
-      const {data,error}=await supabase.storage.from(RECEIPT_BUCKET).createSignedUrl(link.dataset.receipt,60);
-      if(error) throw error;
-      window.open(data.signedUrl,"_blank","noopener,noreferrer");
-    } catch(err) { console.error(err); toast("No se pudo abrir el comprobante. Revisa las políticas de Storage en Supabase."); }
-  }));
+   try {
+  const movimiento = cachedMovements.find(m => m.id === btn.dataset.delete);
+  if (!movimiento) throw new Error("Movimiento no encontrado.");
+
+  // Primero elimina el archivo de Supabase, si existe.
+  if (movimiento.comprobante) {
+    const { error } = await supabase.storage
+      .from(RECEIPT_BUCKET)
+      .remove([movimiento.comprobante]);
+
+    if (error) throw error;
+  }
+
+  // Después elimina el registro de Firestore.
+  await deleteDoc(doc(db, "movimientos", movimiento.id));
+
+  toast("Movimiento y comprobante eliminados.");
+  await loadMovements();
+
+} catch (e) {
+  console.error(e);
+  toast(friendlyError(e));
 }
 async function findEmployeeByEmail(email) {
   const snap=await getDocs(query(collection(db,"usuarios"),where("email","==",email)));
@@ -255,5 +266,4 @@ onAuthStateChanged(auth,async user=>{
   catch(error){console.error("BER Viáticos:",error);$("connectionStatus").textContent="Revisar conexión";toast(friendlyError(error));}
 });
 window.addEventListener("online",()=>{$("connectionStatus").textContent="Conectado";$("connectionStatus").classList.add("online");});
-window.addEventListener("offline",()=>{$("connectionStatus").textContent="Sin internet";$("connectionStatus").classList.remove("online");});
-if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(e=>console.warn("Service worker:",e)));
+window.addEventListener("offline",()=>{$("connectionStatus").textContent="Sin conexión";$("connectionStatus").classList.remove("online");});
