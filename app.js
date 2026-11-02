@@ -166,8 +166,10 @@ function renderMovements() {
     const who=currentProfile.rol==="admin"?`<small>Empleado: ${escapeHTML(m.emailEmpleado||"sin correo")}</small>`:"";
     return `<article class="movement-item"><div class="movement-icon">${advance?"↙":(icons[m.categoria]||"↗")}</div><div class="movement-info"><strong>${escapeHTML(m.categoria||(advance?"Viático":"Gasto"))}</strong><small>${dateText(m.fecha)} · ${escapeHTML(m.descripcion||"Sin descripción")}</small>${who}${attachment}${adminDelete}</div><div class="movement-amount ${advance?"advance":"expense"}">${advance?"+":"−"} ${money(m.valor)}</div></article>`;
   }).join("");
-  list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!confirm("¿Eliminar este movimiento? Esta acción no se puede deshacer.")) return;
+  list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",()=>deleteMovement(btn)));
+}
+async function deleteMovement(btn) {
+  if(!confirm("¿Eliminar este movimiento? Esta acción no se puede deshacer.")) return;
    try {
   const movimiento = cachedMovements.find(m => m.id === btn.dataset.delete);
   if (!movimiento) throw new Error("Movimiento no encontrado.");
@@ -190,6 +192,7 @@ function renderMovements() {
 } catch (e) {
   console.error(e);
   toast(friendlyError(e));
+}
 }
 async function findEmployeeByEmail(email) {
   const snap=await getDocs(query(collection(db,"usuarios"),where("email","==",email)));
