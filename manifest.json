@@ -2,7 +2,7 @@
   "id": "./",
   "name": "BER Ingeniería | Control de Viáticos",
   "short_name": "BER Viáticos",
-  "description": "Control corporativo de viáticos, gastos y comprobantes.",
+  "description": "Control corporativo de viáticos y gastos.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -11,15 +11,15 @@
   "theme_color": "#07172d",
   "icons": [
     {
-      "src": "./icons/icon-192.png",
+      "src": "./icon/icon-192.png",
       "sizes": "192x192",
-      "type": "img/logo-ber-original.png",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "./icon/icon-512.png",
       "sizes": "512x512",
-      "type": "img/logo-ber-original.png",
+      "type": "image/png",
       "purpose": "any"
     }
   ]
