@@ -10,3 +10,192 @@
 @media(max-width:800px){.shell{padding:0 17px 22px}.topbar{height:70px}.auth-layout{grid-template-columns:1fr;gap:25px;padding:38px 0}.hero-copy{padding:0 3px}.hero-copy h1{font-size:39px;margin-top:15px}.hero-copy>p{font-size:13px}.feature-row{font-size:10px;gap:10px 13px;margin-top:20px}.auth-card{padding:25px 21px}.stats-grid{gap:9px}.stat-card{padding:15px 12px;border-radius:13px}.stat-label{font-size:8px;letter-spacing:.08em}.stat-value{font-size:clamp(17px,4vw,24px);margin:12px 0 9px}.stat-foot{font-size:9px}.content-grid{grid-template-columns:1fr}.welcome-row{padding:27px 0 19px}.welcome-row h1{font-size:29px}.profile-chip{max-width:47%;padding:8px}.profile-chip strong{max-width:120px;font-size:10px}.admin-grid{grid-template-columns:1fr 1fr}.admin-grid>div{grid-column:1/-1}.panel{padding:18px}.movement-item{grid-template-columns:35px minmax(0,1fr) auto;gap:9px}.movement-icon{width:34px;height:34px}.movement-amount{font-size:11px}.splash-subtitle{font-size:9px;letter-spacing:.16em}}
 @media(max-width:390px){.stats-grid{grid-template-columns:1fr}.stat-card{padding:14px 16px}.stat-value{margin:8px 0}.stat-foot{display:none}.brand-copy strong{font-size:10px}.brand-copy small{font-size:8px}.status-dot{font-size:9px}.field-grid{grid-template-columns:1fr}.welcome-row{align-items:flex-start}.profile-chip{max-width:48%}.hero-copy h1{font-size:34px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+/* =========================================
+   BER INGENIERÍA - ACTUALIZACIÓN VISUAL
+   Galería de comprobantes y contabilización
+   ========================================= */
+
+:root {
+  --ber-navy: #07172d;
+  --ber-blue: #0d2747;
+  --ber-gold: #d9a62e;
+  --ber-gold-light: #f6d56a;
+  --ber-white: #f5f7fb;
+  --ber-muted: #9eacc0;
+  --ber-border: rgba(217, 166, 46, .25);
+}
+
+/* Paneles y tarjetas */
+.accounting-panel,
+.receipt-gallery,
+.employee-summary,
+.expense-summary {
+  background: linear-gradient(145deg, #0d2747, #07172d);
+  border: 1px solid var(--ber-border);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 16px 0;
+  color: var(--ber-white);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, .18);
+}
+
+/* Resumen de viáticos, gastos y saldo */
+.accounting-summary,
+.accounting-cards,
+.receipt-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.accounting-card {
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid var(--ber-border);
+  border-radius: 13px;
+  padding: 16px;
+}
+
+.accounting-card h3,
+.accounting-card .label {
+  color: var(--ber-muted);
+  font-size: .88rem;
+  margin-bottom: 8px;
+}
+
+.accounting-card strong,
+.accounting-card .amount {
+  color: var(--ber-gold-light);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+/* Galería de comprobantes */
+.receipt-grid,
+.receipts-grid,
+.employee-receipts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 14px;
+  margin-top: 15px;
+}
+
+.receipt-item,
+.receipt-card {
+  overflow: hidden;
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid var(--ber-border);
+  border-radius: 13px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.receipt-item img,
+.receipt-card img {
+  width: 100%;
+  height: 145px;
+  object-fit: cover;
+  border-radius: 9px;
+  display: block;
+}
+
+.receipt-item p,
+.receipt-card p {
+  color: var(--ber-white);
+  font-size: .88rem;
+  overflow-wrap: anywhere;
+}
+
+/* Botones de contabilización */
+.btn-accounting,
+.btn-contabilizar,
+[data-action="accounting"] {
+  background: linear-gradient(135deg, var(--ber-gold), var(--ber-gold-light));
+  color: #07172d;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .2s ease, filter .2s ease;
+}
+
+.btn-accounting:hover,
+.btn-contabilizar:hover,
+[data-action="accounting"]:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+/* Botones secundarios */
+.btn-secondary,
+.btn-delete-receipt {
+  border: 1px solid var(--ber-border);
+  background: rgba(255, 255, 255, .06);
+  color: var(--ber-white);
+  border-radius: 9px;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+
+/* Estados */
+.status-pending {
+  color: #f6d56a;
+}
+
+.status-confirmed {
+  color: #65d69a;
+}
+
+.status-rejected {
+  color: #ff8585;
+}
+
+/* Tablas administrativas */
+.accounting-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--ber-white);
+}
+
+.accounting-table th,
+.accounting-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--ber-border);
+}
+
+.accounting-table th {
+  color: var(--ber-gold-light);
+}
+
+/* Adaptación a celulares */
+@media (max-width: 600px) {
+  .accounting-panel,
+  .receipt-gallery,
+  .employee-summary,
+  .expense-summary {
+    padding: 14px;
+  }
+
+  .accounting-summary,
+  .accounting-cards,
+  .receipt-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .receipt-grid,
+  .receipts-grid,
+  .employee-receipts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .accounting-table {
+    font-size: .82rem;
+  }
+
+  .accounting-table th,
+  .accounting-table td {
+    padding: 8px;
+  }
+}
