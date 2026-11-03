@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 
 import {
@@ -32,9 +33,9 @@ import {
   RECEIPT_BUCKET
 } from "./supabase-config.js";
 
-// ==================================================
+// --------------------------------------------------
 // 1. CONEXIONES
-// ==================================================
+// --------------------------------------------------
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -45,42 +46,57 @@ const supabase = createClient(
   SUPABASE_PUBLISHABLE_KEY,
   {
     accessToken: async () => {
-      return auth.currentUser
-        ? await auth.currentUser.getIdToken()
-        : null;
+      const user = auth.currentUser;
+      return user ? await user.getIdToken() : null;
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
     }
   }
 );
 
-// ==================================================
-// 2. VARIABLES Y UTILIDADES
-// ==================================================
+// --------------------------------------------------
+// 2. VARIABLES
+// --------------------------------------------------
 
 let currentUser = null;
 let currentProfile = null;
 let movements = [];
 let showingAll = false;
+let loadingUid = null;
 
-const $ = id => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
 const isAdmin = () => currentProfile?.rol === "admin";
 
-const allowedTypes = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf"
-];
+function message(elementId, text, error = false) {
+  const element = $(elementId);
+  if (!element) return;
 
-const money = value =>
-  new Intl.NumberFormat("es-CO", {
+  element.textContent = text;
+  element.style.color = error ? "#ff7777" : "#d9a62e";
+}
+
+function setConnection(text, error = false) {
+  const element = $("connectionStatus");
+  if (!element) return;
+
+  element.textContent = text;
+  element.style.color = error ? "#ff7777" : "#d9a62e";
+}
+
+function money(value) {
+  return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency: "COP",
     maximumFractionDigits: 0
   }).format(Number(value) || 0);
+}
 
 function safeText(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
@@ -89,63 +105,40 @@ function safeText(value) {
   })[char]);
 }
 
-function message(id, text, error = false) {
-  const element = $(id);
-  if (!element) return;
+function showError(error) {
+  console.error("BER APP:", error);
 
-  element.textContent = text;
-  element.classList.remove("hidden");
-  element.style.color = error ? "#ff7777" : "#d9a62e";
+  const detail = error?.message || "Error desconocido";
+  setConnection("Error: " + detail, true);
+  message("authMessage", "No se pudo cargar la aplicación: " + detail, true);
 }
 
-function hideMessage(id) {
-  $(id)?.classList.add("hidden");
-}
-
-function hideSplash() {
-  $("splash")?.classList.add("splash-dismiss");
-  setTimeout(() => $("splash")?.classList.add("hidden"), 520);
-}
-
-function setButtonLoading(id, loading, text = "Procesando...") {
-  const button = $(id);
-  if (!button) return;
-
-  if (loading) {
-    button.dataset.originalText = button.textContent;
-    button.disabled = true;
-    button.textContent = text;
-  } else {
-    button.disabled = false;
-    if (button.dataset.originalText) {
-      button.textContent = button.dataset.originalText;
-    }
-  }
-}
-
-// ==================================================
+// --------------------------------------------------
 // 3. AUTENTICACIÓN
-// ==================================================
+// --------------------------------------------------
 
-$("loginForm")?.addEventListener("submit", async event => {
+const loginForm = $("loginForm");
+
+loginForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  hideMessage("authMessage");
-  message("authMessage", "Ingresando...");
+  const email = $("email")?.value.trim();
+  const password = $("password")?.value;
 
-  setButtonLoading("loginBtn", true, "Ingresando...");
+  if (!email || !password) {
+    message("authMessage", "Escribe tu correo y contraseña.", true);
+    return;
+  }
+
+  message("authMessage", "Ingresando...");
+  setConnection("Verificando acceso...");
 
   try {
-    await signInWithEmailAndPassword(
-      auth,
-      $("email").value.trim(),
-      $("password").value
-    );
+    await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
     console.error(error);
-    message("authMessage", "Error de acceso: " + error.message, true);
-  } finally {
-    setButtonLoading("loginBtn", false);
+    message("authMessage", "No se pudo ingresar: " + error.message, true);
+    setConnection("Error de inicio de sesión", true);
   }
 });
 
@@ -159,16 +152,13 @@ $("showSignup")?.addEventListener("click", async () => {
   }
 
   if (password.length < 6) {
-    message("authMessage", "La contraseña debe tener mínimo 6 caracteres.", true);
+    message("authMessage", "La contraseña debe tener al menos 6 caracteres.", true);
     return;
   }
 
   try {
     message("authMessage", "Creando cuenta...");
-
     await createUserWithEmailAndPassword(auth, email, password);
-
-    message("authMessage", "Cuenta creada correctamente.");
   } catch (error) {
     console.error(error);
     message("authMessage", "No se pudo crear la cuenta: " + error.message, true);
@@ -176,26 +166,31 @@ $("showSignup")?.addEventListener("click", async () => {
 });
 
 $("logoutBtn")?.addEventListener("click", async () => {
-  await signOut(auth);
+  try {
+    await signOut(auth);
+  } catch (error) {
+    showError(error);
+  }
 });
 
-// ==================================================
+// --------------------------------------------------
 // 4. PERFIL Y PERMISOS
-// ==================================================
+// --------------------------------------------------
 
 async function loadProfile(user) {
   const reference = doc(db, "usuarios", user.uid);
   const snapshot = await getDoc(reference);
 
   if (!snapshot.exists()) {
-    currentProfile = {
+    const newProfile = {
       nombre: user.displayName || user.email,
       email: user.email,
       rol: "empleado",
       activo: true
     };
 
-    await setDoc(reference, currentProfile);
+    await setDoc(reference, newProfile);
+    currentProfile = newProfile;
   } else {
     currentProfile = snapshot.data();
   }
@@ -205,116 +200,76 @@ async function loadProfile(user) {
     throw new Error("Tu cuenta se encuentra desactivada.");
   }
 
-  $("signedUser").textContent = user.email;
+  if ($("signedUser")) {
+    $("signedUser").textContent = user.email;
+  }
 
-  $("roleLabel").textContent =
-    isAdmin() ? "ADMINISTRADOR" : "EMPLEADO";
+  if ($("roleLabel")) {
+    $("roleLabel").textContent = isAdmin()
+      ? "ADMINISTRADOR"
+      : "EMPLEADO";
+  }
 
-  $("welcomeTitle").textContent =
-    `Bienvenido, ${currentProfile.nombre || "usuario"}`;
+  if ($("welcomeTitle")) {
+    $("welcomeTitle").textContent =
+      `Bienvenido, ${currentProfile.nombre || "usuario"}`;
+  }
 
-  $("avatar").textContent =
-    (currentProfile.nombre || user.email || "B").charAt(0).toUpperCase();
+  if ($("adminTools")) {
+    $("adminTools").style.display = isAdmin() ? "block" : "none";
+  }
 
-  $("adminTools")?.classList.toggle("hidden", !isAdmin());
+  if ($("targetEmployeeWrap")) {
+    $("targetEmployeeWrap").style.display = isAdmin() ? "block" : "none";
+  }
 
-  $("targetEmployeeWrap")?.classList.toggle("hidden", !isAdmin());
-
-  $("logoutBtn")?.classList.remove("hidden");
-
-  // Los administradores pueden consultar todos los movimientos.
+  // El administrador comienza consultando todos los movimientos.
   showingAll = isAdmin();
 }
 
-// ==================================================
-// 5. INICIO DE LA APLICACIÓN
-// ==================================================
+// --------------------------------------------------
+// 5. CARGAR APLICACIÓN
+// --------------------------------------------------
 
 async function loadApp() {
   $("authPanel")?.classList.add("hidden");
   $("appPanel")?.classList.remove("hidden");
 
+  setConnection("Conectando con Firebase...");
+
   await loadMovements();
-  updateConnection();
-  hideSplash();
+
+  setConnection("Conectado");
+  $("splash")?.classList.add("hidden");
 }
 
-// ==================================================
-// 6. BUSCAR EMPLEADO
-// ==================================================
+// --------------------------------------------------
+// 6. REGISTRAR MOVIMIENTO
+// --------------------------------------------------
 
-async function findEmployeeByEmail(email) {
-  const snapshot = await getDocs(collection(db, "usuarios"));
-
-  const found = snapshot.docs.find(item =>
-    (item.data().email || "").toLowerCase() === email.toLowerCase()
-  );
-
-  if (!found) return null;
-
-  return {
-    user: {
-      uid: found.id,
-      email: found.data().email
-    },
-    profile: found.data()
-  };
-}
-
-// ==================================================
-// 7. SUBIR COMPROBANTE A SUPABASE
-// ==================================================
-
-async function uploadReceipt(file, uid) {
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error("Formato no permitido. Usa JPG, PNG, WEBP o PDF.");
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    throw new Error("El archivo supera el límite de 10 MB.");
-  }
-
-  const extension = file.name.split(".").pop().toLowerCase();
-
-  const uniqueName =
-    `${Date.now()}_${crypto.randomUUID()}.${extension}`;
-
-  const path = `${uid}/${uniqueName}`;
-
-  const { error } = await supabase.storage
-    .from(RECEIPT_BUCKET)
-    .upload(path, file, {
-      contentType: file.type,
-      upsert: false
-    });
-
-  if (error) throw error;
-
-  return path;
-}
-
-// ==================================================
-// 8. REGISTRAR MOVIMIENTO
-// ==================================================
-
-$("movementForm")?.addEventListener("submit", async event => {
+$("movementForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  hideMessage("formMessage");
-  setButtonLoading("saveMovementBtn", true, "Guardando...");
+  const saveButton = $("saveMovementBtn");
+
+  if (saveButton) saveButton.disabled = true;
 
   let uploadedPath = null;
 
   try {
-    const tipo = $("movementType").value;
-    const fecha = $("movementDate").value;
-    const valor = Number($("amount").value);
-    const categoria = $("category").value;
-    const descripcion = $("description").value.trim();
-    const file = $("receipt").files?.[0];
+    if (!currentUser || !currentProfile) {
+      throw new Error("No hay una sesión activa.");
+    }
+
+    const tipo = $("movementType")?.value;
+    const fecha = $("movementDate")?.value;
+    const valor = Number($("amount")?.value);
+    const categoria = $("category")?.value || "Sin clasificar";
+    const descripcion = $("description")?.value.trim() || "";
+    const file = $("receipt")?.files?.[0];
 
     if (!tipo || !fecha || !Number.isFinite(valor) || valor <= 0) {
-      throw new Error("Completa el tipo, fecha y valor.");
+      throw new Error("Completa el tipo, la fecha y el valor.");
     }
 
     if (tipo === "gasto" && !file) {
@@ -324,11 +279,12 @@ $("movementForm")?.addEventListener("submit", async event => {
     let recipient = currentUser;
     let recipientProfile = currentProfile;
 
+    // El administrador puede asignar viáticos a empleados.
     if (isAdmin() && tipo === "viatico") {
-      const email = $("targetEmployee")?.value.trim();
+      const targetEmail = $("targetEmployee")?.value.trim();
 
-      if (email) {
-        const employee = await findEmployeeByEmail(email);
+      if (targetEmail) {
+        const employee = await findEmployeeByEmail(targetEmail);
 
         if (!employee) {
           throw new Error("No se encontró ese empleado.");
@@ -339,8 +295,49 @@ $("movementForm")?.addEventListener("submit", async event => {
       }
     }
 
+    // Validación y subida de comprobante.
+    let storagePath = null;
+    let fileName = null;
+
     if (file) {
-      uploadedPath = await uploadReceipt(file, recipient.uid);
+      const extension = file.name.split(".").pop().toLowerCase();
+
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "application/pdf"
+      ];
+
+      const allowedExtensions = ["jpg", "jpeg", "png", "webp", "pdf"];
+
+      if (
+        !allowedTypes.includes(file.type) ||
+        !allowedExtensions.includes(extension)
+      ) {
+        throw new Error("Solo se permiten JPG, PNG, WEBP y PDF.");
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error("El archivo supera el límite de 10 MB.");
+      }
+
+      const uniqueName =
+        `${Date.now()}_${crypto.randomUUID()}.${extension}`;
+
+      storagePath = `${recipient.uid}/${uniqueName}`;
+      fileName = file.name;
+
+      const { error: uploadError } = await supabase.storage
+        .from(RECEIPT_BUCKET)
+        .upload(storagePath, file, {
+          contentType: file.type,
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      uploadedPath = storagePath;
     }
 
     await addDoc(collection(db, "movimientos"), {
@@ -352,8 +349,8 @@ $("movementForm")?.addEventListener("submit", async event => {
       categoria,
       valor,
       descripcion,
-      comprobante: uploadedPath,
-      nombreArchivo: file?.name || null,
+      comprobante: storagePath,
+      nombreArchivo: fileName,
       estadoContable: tipo === "gasto" ? "pendiente" : "registrado",
       creadoPor: currentUser.uid,
       creadoEn: serverTimestamp()
@@ -364,32 +361,68 @@ $("movementForm")?.addEventListener("submit", async event => {
     message("formMessage", "Movimiento registrado correctamente.");
 
     showingAll = isAdmin();
-
     await loadMovements();
 
   } catch (error) {
     console.error(error);
 
-    // Evita dejar archivos huérfanos si falla el registro en Firestore.
+    // Si falló Firestore después de subir el archivo,
+    // intentamos retirar el archivo para no dejarlo huérfano.
     if (uploadedPath) {
-      await supabase.storage
-        .from(RECEIPT_BUCKET)
-        .remove([uploadedPath])
-        .catch(console.error);
+      try {
+        await supabase.storage
+          .from(RECEIPT_BUCKET)
+          .remove([uploadedPath]);
+      } catch (cleanupError) {
+        console.error("No se pudo limpiar el archivo:", cleanupError);
+      }
     }
 
-    message("formMessage", error.message || "No se pudo guardar.", true);
+    message(
+      "formMessage",
+      error.message || "No se pudo guardar el movimiento.",
+      true
+    );
+
   } finally {
-    setButtonLoading("saveMovementBtn", false);
+    if (saveButton) saveButton.disabled = false;
   }
 });
 
-// ==================================================
-// 9. CARGAR MOVIMIENTOS
-// ==================================================
+// --------------------------------------------------
+// 7. BUSCAR EMPLEADO
+// --------------------------------------------------
+
+async function findEmployeeByEmail(email) {
+  const usersSnapshot = await getDocs(collection(db, "usuarios"));
+
+  const normalizedEmail = email.toLowerCase();
+
+  for (const userDoc of usersSnapshot.docs) {
+    const profile = userDoc.data();
+
+    if ((profile.email || "").toLowerCase() === normalizedEmail) {
+      return {
+        user: {
+          uid: userDoc.id,
+          email: profile.email
+        },
+        profile
+      };
+    }
+  }
+
+  return null;
+}
+
+// --------------------------------------------------
+// 8. CARGAR MOVIMIENTOS
+// --------------------------------------------------
 
 async function loadMovements() {
-  if (!currentUser) return;
+  if (!currentUser) {
+    throw new Error("No existe una sesión activa.");
+  }
 
   let movementQuery;
 
@@ -404,7 +437,7 @@ async function loadMovements() {
 
   const snapshot = await getDocs(movementQuery);
 
-  movements = snapshot.docs.map(item => ({
+  movements = snapshot.docs.map((item) => ({
     id: item.id,
     ...item.data()
   }));
@@ -415,144 +448,104 @@ async function loadMovements() {
 
   await renderMovements();
   updateTotals();
-  renderAccountingSummary();
 }
 
-// ==================================================
-// 10. URL SEGURA DE COMPROBANTES
-// ==================================================
-
-async function getReceiptUrl(path) {
-  if (!path) return null;
-
-  const { data, error } = await supabase.storage
-    .from(RECEIPT_BUCKET)
-    .createSignedUrl(path, 3600);
-
-  if (error) {
-    console.error("Error al obtener comprobante:", error);
-    return null;
-  }
-
-  return data?.signedUrl || null;
-}
-
-// ==================================================
-// 11. HISTORIAL Y GALERÍA
-// ==================================================
+// --------------------------------------------------
+// 9. MOSTRAR MOVIMIENTOS Y COMPROBANTES
+// --------------------------------------------------
 
 async function renderMovements() {
   const container = $("movementsList");
-  const gallery = $("receiptsGallery");
-
   if (!container) return;
 
   if (!movements.length) {
-    container.innerHTML =
-      '<p class="empty-state">No hay movimientos registrados.</p>';
-
-    if (gallery) {
-      gallery.innerHTML =
-        '<p class="empty-state">Todavía no hay comprobantes.</p>';
-    }
-
+    container.innerHTML = "<p>No hay movimientos registrados.</p>";
     return;
   }
 
-  const galleryItems = [];
+  const cards = await Promise.all(
+    movements.map(async (item) => {
+      let receiptUrl = null;
 
-  const cards = await Promise.all(movements.map(async item => {
-    let receiptUrl = null;
+      if (item.comprobante) {
+        try {
+          const { data, error } = await supabase.storage
+            .from(RECEIPT_BUCKET)
+            .createSignedUrl(item.comprobante, 3600);
 
-    if (item.comprobante) {
-      receiptUrl = await getReceiptUrl(item.comprobante);
-
-      if (receiptUrl) {
-        galleryItems.push({
-          item,
-          url: receiptUrl
-        });
+          if (error) {
+            console.error("Error al consultar comprobante:", error);
+          } else {
+            receiptUrl = data?.signedUrl || null;
+          }
+        } catch (error) {
+          console.error("Error de Supabase:", error);
+        }
       }
-    }
 
-    const canDelete =
-      isAdmin() || item.uid === currentUser.uid;
+      const canDelete = isAdmin() || item.uid === currentUser.uid;
 
-    return `
-      <article class="movement-card">
-        <div class="movement-info">
-          <h3>${safeText(item.nombreEmpleado || item.emailEmpleado)}</h3>
-          <p><strong>Tipo:</strong> ${safeText(item.tipo)}</p>
-          <p><strong>Fecha:</strong> ${safeText(item.fecha)}</p>
-          <p><strong>Categoría:</strong> ${safeText(item.categoria)}</p>
-          <p><strong>Valor:</strong> ${money(item.valor)}</p>
-          <p><strong>Estado:</strong> ${safeText(item.estadoContable || "pendiente")}</p>
-          ${item.descripcion ? <p>${safeText(item.descripcion)}</p> : ""}
-        </div>
+      return `
+        <article class="movement-card">
+          <div class="movement-info">
+            <h3>${safeText(item.nombreEmpleado || item.emailEmpleado)}</h3>
+            <p><strong>Tipo:</strong> ${safeText(item.tipo)}</p>
+            <p><strong>Fecha:</strong> ${safeText(item.fecha)}</p>
+            <p><strong>Categoría:</strong> ${safeText(item.categoria)}</p>
+            <p><strong>Valor:</strong> ${money(item.valor)}</p>
+            <p><strong>Estado:</strong> ${safeText(item.estadoContable || "pendiente")}</p>
+            ${item.descripcion ? `<p>${safeText(item.descripcion)}</p>` : ""}
+            ${item.nombreArchivo ? `<p><strong>Archivo:</strong> ${safeText(item.nombreArchivo)}</p>` : ""}
+          </div>
 
-        ${receiptUrl ? `
-          <a href="${receiptUrl}" target="_blank" rel="noopener">
-            VER COMPROBANTE
-          </a>
-        ` : ""}
+          ${receiptUrl ? `
+            <a href="${receiptUrl}" target="_blank" rel="noopener noreferrer">
+              VER COMPROBANTE
+            </a>
+          ` : ""}
 
-        ${isAdmin() && item.tipo === "gasto" &&
-          item.estadoContable !== "contabilizado" ? `
-          <button type="button" data-account="${item.id}">
-            CONTABILIZAR
-          </button>
-        ` : ""}
+          ${item.tipo === "gasto" && isAdmin() ? `
+            <button type="button" data-account="${item.id}">
+              CONTABILIZAR
+            </button>
+          ` : ""}
 
-        ${canDelete ? `
-          <button type="button" data-delete="${item.id}">
-            ELIMINAR
-          </button>
-        ` : ""}
-      </article>
-    `;
-  }));
+          ${canDelete ? `
+            <button type="button" data-delete="${item.id}">
+              ELIMINAR
+            </button>
+          ` : ""}
+        </article>
+      `;
+    })
+  );
 
   container.innerHTML = cards.join("");
 
-  if (gallery) {
-    gallery.innerHTML = galleryItems.length
-      ? galleryItems.map(({ item, url }) => `
-          <article class="movement-card">
-            <strong>${safeText(item.nombreEmpleado || item.emailEmpleado)}</strong>
-            <p>${safeText(item.nombreArchivo || "Comprobante")}</p>
-            <p>${safeText(item.fecha || "")}</p>
-            <a href="${url}" target="_blank" rel="noopener">
-              ABRIR DOCUMENTO →
-            </a>
-          </article>
-        `).join("")
-      : '<p class="empty-state">No hay comprobantes disponibles.</p>';
-  }
-
-  container.querySelectorAll("[data-delete]").forEach(button => {
-    button.addEventListener("click", () =>
-      deleteMovement(button.dataset.delete)
-    );
+  container.querySelectorAll("[data-delete]").forEach((button) => {
+    button.addEventListener("click", () => {
+      deleteMovement(button.dataset.delete);
+    });
   });
 
-  container.querySelectorAll("[data-account]").forEach(button => {
-    button.addEventListener("click", () =>
-      accountMovement(button.dataset.account)
-    );
+  container.querySelectorAll("[data-account]").forEach((button) => {
+    button.addEventListener("click", () => {
+      accountMovement(button.dataset.account);
+    });
   });
 }
 
-// ==================================================
-// 12. CONTABILIZACIÓN
-// ==================================================
+// --------------------------------------------------
+// 10. CONTABILIZAR COMPROBANTE
+// --------------------------------------------------
 
 async function accountMovement(id) {
   if (!isAdmin()) {
-    alert("Solo el administrador puede contabilizar movimientos.");
+    alert("Solo un administrador puede contabilizar gastos.");
     return;
   }
 
-  const item = movements.find(movement => movement.id === id);
+  const item = movements.find((movement) => movement.id === id);
   if (!item) return;
 
   const fecha = prompt("Fecha de la factura:", item.fecha || "");
@@ -561,10 +554,13 @@ async function accountMovement(id) {
   const proveedor = prompt("Nombre del proveedor:", "");
   if (proveedor === null) return;
 
-  const nit = prompt("NIT del proveedor:", "");
+  const nit = prompt("NIT del proveedor (opcional):", "");
   if (nit === null) return;
 
-  const categoria = prompt("Categoría:", item.categoria || "Otros");
+  const categoria = prompt(
+    "Categoría del gasto:",
+    item.categoria || "Otros"
+  );
   if (categoria === null) return;
 
   const total = Number(
@@ -592,60 +588,21 @@ async function accountMovement(id) {
       { merge: true }
     );
 
-    alert("Comprobante contabilizado correctamente.");
-
+    alert("Comprobante contabilizado y actualizado.");
     await loadMovements();
 
   } catch (error) {
     console.error(error);
-    alert("Error al contabilizar: " + error.message);
+    alert("No se pudo contabilizar: " + error.message);
   }
 }
 
-function renderAccountingSummary() {
-  const summary = $("accountingSummary");
-  const details = $("accountingDetails");
-
-  if (!summary || !details) return;
-
-  const pending = movements.filter(item =>
-    item.tipo === "gasto" && item.estadoContable !== "contabilizado"
-  );
-
-  const completed = movements.filter(item =>
-    item.tipo === "gasto" && item.estadoContable === "contabilizado"
-  );
-
-  details.innerHTML = `
-    <p>Comprobantes pendientes: <strong>${pending.length}</strong></p>
-    <p>Comprobantes contabilizados: <strong>${completed.length}</strong></p>
-    <p>Total pendiente: <strong>${money(
-      pending.reduce((sum, item) => sum + Number(item.valor || 0), 0)
-    )}</strong></p>
-    <p>Total contabilizado: <strong>${money(
-      completed.reduce((sum, item) => sum + Number(item.valor || 0), 0)
-    )}</strong></p>
-  `;
-
-  summary.classList.remove("hidden");
-}
-
-$("accountingBtn")?.addEventListener("click", () => {
-  if (!isAdmin()) {
-    message("accountingMessage", "Esta función es exclusiva del administrador.", true);
-    return;
-  }
-
-  renderAccountingSummary();
-  $("accountingSummary")?.scrollIntoView({ behavior: "smooth" });
-});
-
-// ==================================================
-// 13. ELIMINAR MOVIMIENTO Y ARCHIVO
-// ==================================================
+// --------------------------------------------------
+// 11. ELIMINAR MOVIMIENTO Y COMPROBANTE
+// --------------------------------------------------
 
 async function deleteMovement(id) {
-  const item = movements.find(movement => movement.id === id);
+  const item = movements.find((movement) => movement.id === id);
   if (!item) return;
 
   if (!isAdmin() && item.uid !== currentUser.uid) {
@@ -653,7 +610,9 @@ async function deleteMovement(id) {
     return;
   }
 
-  if (!confirm("¿Eliminar este movimiento y su comprobante?")) return;
+  if (!confirm("¿Deseas eliminar este movimiento y su comprobante?")) {
+    return;
+  }
 
   try {
     if (item.comprobante) {
@@ -666,8 +625,7 @@ async function deleteMovement(id) {
 
     await deleteDoc(doc(db, "movimientos", id));
 
-    alert("Movimiento eliminado correctamente.");
-
+    alert("Documento eliminado.");
     await loadMovements();
 
   } catch (error) {
@@ -676,27 +634,37 @@ async function deleteMovement(id) {
   }
 }
 
-// ==================================================
-// 14. TOTALES
-// ==================================================
+// --------------------------------------------------
+// 12. TOTALES Y SALDOS
+// --------------------------------------------------
 
 function updateTotals() {
   const advances = movements
-    .filter(item => item.tipo === "viatico")
+    .filter((item) => item.tipo === "viatico")
     .reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
   const expenses = movements
-    .filter(item => item.tipo === "gasto")
+    .filter((item) => item.tipo === "gasto")
     .reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
-  $("totalAdvances").textContent = money(advances);
-  $("totalExpenses").textContent = money(expenses);
-  $("balance").textContent = money(advances - expenses);
+  const remaining = advances - expenses;
+
+  if ($("totalAdvances")) {
+    $("totalAdvances").textContent = money(advances);
+  }
+
+  if ($("totalExpenses")) {
+    $("totalExpenses").textContent = money(expenses);
+  }
+
+  if ($("balance")) {
+    $("balance").textContent = money(remaining);
+  }
 }
 
-// ==================================================
-// 15. CONSULTAS ADMINISTRATIVAS
-// ==================================================
+// --------------------------------------------------
+// 13. CONSULTA ADMINISTRATIVA
+// --------------------------------------------------
 
 $("allMovementsBtn")?.addEventListener("click", async () => {
   if (!isAdmin()) return;
@@ -705,8 +673,7 @@ $("allMovementsBtn")?.addEventListener("click", async () => {
     showingAll = true;
     await loadMovements();
   } catch (error) {
-    console.error(error);
-    alert("No se pudieron consultar los movimientos: " + error.message);
+    showError(error);
   }
 });
 
@@ -715,17 +682,17 @@ $("filterEmployeeBtn")?.addEventListener("click", async () => {
 
   const email = $("employeeFilter")?.value.trim();
 
-  if (!email) {
-    showingAll = true;
-    await loadMovements();
-    return;
-  }
-
   try {
+    if (!email) {
+      showingAll = true;
+      await loadMovements();
+      return;
+    }
+
     const employee = await findEmployeeByEmail(email);
 
     if (!employee) {
-      alert("No se encontró ese empleado.");
+      alert("No se encontró el empleado.");
       return;
     }
 
@@ -736,7 +703,7 @@ $("filterEmployeeBtn")?.addEventListener("click", async () => {
       )
     );
 
-    movements = snapshot.docs.map(item => ({
+    movements = snapshot.docs.map((item) => ({
       id: item.id,
       ...item.data()
     }));
@@ -747,17 +714,15 @@ $("filterEmployeeBtn")?.addEventListener("click", async () => {
 
     await renderMovements();
     updateTotals();
-    renderAccountingSummary();
 
   } catch (error) {
-    console.error(error);
-    alert("Error al consultar empleado: " + error.message);
+    showError(error);
   }
 });
 
-// ==================================================
-// 16. EXPORTAR CSV
-// ==================================================
+// --------------------------------------------------
+// 14. EXPORTAR INFORMACIÓN A CSV
+// --------------------------------------------------
 
 $("exportBtn")?.addEventListener("click", () => {
   if (!isAdmin()) return;
@@ -774,7 +739,7 @@ $("exportBtn")?.addEventListener("click", () => {
     "Estado contable"
   ];
 
-  const rows = movements.map(item => [
+  const rows = movements.map((item) => [
     item.nombreEmpleado,
     item.emailEmpleado,
     item.tipo,
@@ -787,11 +752,12 @@ $("exportBtn")?.addEventListener("click", () => {
   ]);
 
   const csv = [headers, ...rows]
-    .map(row =>
-      row.map(value =>
+    .map((row) =>
+      row.map((value) =>
         `"${String(value ?? "").replace(/"/g, '""')}"`
       ).join(";")
-    ).join("\n");
+    )
+    .join("\n");
 
   const blob = new Blob(["\uFEFF" + csv], {
     type: "text/csv;charset=utf-8;"
@@ -807,61 +773,76 @@ $("exportBtn")?.addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
-// ==================================================
-// 17. ACTUALIZAR Y CONEXIÓN
-// ==================================================
+// --------------------------------------------------
+// 15. ACTUALIZAR INFORMACIÓN
+// --------------------------------------------------
 
 $("refreshBtn")?.addEventListener("click", async () => {
   try {
     await loadMovements();
-    message("formMessage", "Información actualizada.");
+    setConnection("Conectado");
   } catch (error) {
-    console.error(error);
-    message("formMessage", "Error al actualizar: " + error.message, true);
+    showError(error);
   }
 });
 
-function updateConnection() {
-  const status = $("connectionStatus");
-  if (!status) return;
+// --------------------------------------------------
+// 16. ESTADO DE INTERNET
+// --------------------------------------------------
 
-  status.textContent = navigator.onLine ? "Conectado" : "Sin conexión";
-  status.classList.toggle("offline", !navigator.onLine);
+function updateConnection() {
+  if (!navigator.onLine) {
+    setConnection("Sin conexión a internet", true);
+  }
 }
 
-window.addEventListener("online", updateConnection);
+window.addEventListener("online", () => {
+  setConnection("Internet disponible. Actualiza la información.");
+});
+
 window.addEventListener("offline", updateConnection);
 
-// ==================================================
-// 18. INICIO DE SESIÓN
-// ==================================================
+// --------------------------------------------------
+// 17. INICIO DE SESIÓN Y CARGA AUTOMÁTICA
+// --------------------------------------------------
 
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user) => {
   currentUser = user;
 
   if (!user) {
     currentProfile = null;
     movements = [];
+    showingAll = false;
+    loadingUid = null;
 
     $("authPanel")?.classList.remove("hidden");
     $("appPanel")?.classList.add("hidden");
-    $("logoutBtn")?.classList.add("hidden");
+    $("splash")?.classList.add("hidden");
 
-    hideSplash();
+    setConnection("Sesión cerrada");
     return;
   }
+
+  // Evita cargar dos veces la misma sesión.
+  if (loadingUid === user.uid) return;
+
+  loadingUid = user.uid;
+
+  setConnection("Conectando con Firebase...");
 
   try {
     await loadProfile(user);
     await loadApp();
+
   } catch (error) {
-    console.error("Error de inicialización:", error);
+    showError(error);
 
-    message("authMessage", error.message || "Error al cargar la aplicación.", true);
+    // Muestra el error en lugar de dejar la aplicación
+    // indefinidamente en el estado de conexión.
+    $("authPanel")?.classList.add("hidden");
+    $("appPanel")?.classList.remove("hidden");
+    $("splash")?.classList.add("hidden");
 
-    $("authPanel")?.classList.remove("hidden");
-    $("appPanel")?.classList.add("hidden");
-
-    hideSplash();
+    loadingUid = null;
   }
 });
