@@ -252,7 +252,19 @@ window.setTimeout(() => {
   }
 },1350);
 </script>
-
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(registration => {
+        console.log("BER PWA registrada:", registration.scope);
+      })
+      .catch(error => {
+        console.error("Error PWA:", error);
+      });
+  });
+}
+</script>
 <script type="module" src="./app.js"></script>
 
 </body>
