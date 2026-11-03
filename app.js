@@ -1,4 +1,5 @@
 
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 
 import {
@@ -33,13 +34,13 @@ import {
   RECEIPT_BUCKET
 } from "./supabase-config.js";
 
-// --------------------------------------------------
+// ================================================
 // 1. CONEXIONES
-// --------------------------------------------------
+// ================================================
 
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 const supabase = createClient(
   SUPABASE_URL,
@@ -57,9 +58,9 @@ const supabase = createClient(
   }
 );
 
-// --------------------------------------------------
-// 2. VARIABLES
-// --------------------------------------------------
+// ================================================
+// 2. VARIABLES GENERALES
+// ================================================
 
 let currentUser = null;
 let currentProfile = null;
@@ -67,16 +68,52 @@ let movements = [];
 let showingAll = false;
 let loadingUid = null;
 
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 const isAdmin = () => currentProfile?.rol === "admin";
 
-function message(elementId, text, error = false) {
-  const element = $(elementId);
+const money = value => new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  maximumFractionDigits: 0
+}).format(Number(value) || 0);
+
+const safeText = value => String(value ?? "").replace(
+  /[&<>"']/g,
+  char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]
+);
+
+function notify(text) {
+  const toast = $("globalToast");
+
+  if (!toast) {
+    alert(text);
+    return;
+  }
+
+  toast.textContent = text;
+  toast.classList.remove("hidden");
+
+  clearTimeout(window.berToastTimer);
+
+  window.berToastTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 3500);
+}
+
+function message(id, text, error = false) {
+  const element = $(id);
   if (!element) return;
 
   element.textContent = text;
-  element.style.color = error ? "#ff7777" : "#d9a62e";
+  element.classList.remove("hidden", "error", "success");
+  element.classList.add(error ? "error" : "success");
 }
 
 function setConnection(text, error = false) {
@@ -84,158 +121,135 @@ function setConnection(text, error = false) {
   if (!element) return;
 
   element.textContent = text;
-  element.style.color = error ? "#ff7777" : "#d9a62e";
+  element.classList.toggle("online", !error);
 }
 
-function money(value) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0
-  }).format(Number(value) || 0);
-}
-
-function safeText(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[char]);
-}
-
-function showError(error) {
-  console.error("BER APP:", error);
-
-  const detail = error?.message || "Error desconocido";
-  setConnection("Error: " + detail, true);
-  message("authMessage", "No se pudo cargar la aplicación: " + detail, true);
-}
-
-// --------------------------------------------------
+// ================================================
 // 3. AUTENTICACIÓN
-// --------------------------------------------------
+// ================================================
 
-const loginForm = $("loginForm");
-
-loginForm?.addEventListener("submit", async (event) => {
+$("loginForm")?.addEventListener("submit", async event => {
   event.preventDefault();
 
-  const email = $("email")?.value.trim();
-  const password = $("password")?.value;
+  const email = $("email").value.trim().toLowerCase();
+  const password = $("password").value;
+  const button = $("loginBtn");
 
   if (!email || !password) {
-    message("authMessage", "Escribe tu correo y contraseña.", true);
+    message("authMessage", "Completa el correo y la contraseña.", true);
     return;
   }
 
-  message("authMessage", "Ingresando...");
-  setConnection("Verificando acceso...");
+  button.disabled = true;
+  button.textContent = "Verificando acceso...";
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
-    console.error(error);
-    message("authMessage", "No se pudo ingresar: " + error.message, true);
-    setConnection("Error de inicio de sesión", true);
+    message("authMessage", "No fue posible ingresar: " + error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Ingresar →";
   }
 });
 
+// Registro de empleados
+
 $("showSignup")?.addEventListener("click", async () => {
-  const email = $("email")?.value.trim();
-  const password = $("password")?.value;
+  const email = $("email").value.trim().toLowerCase();
+  const password = $("password").value;
 
   if (!email || !password) {
-    message("authMessage", "Escribe correo y contraseña.", true);
+    message("authMessage", "Escribe primero tu correo y contraseña.", true);
     return;
   }
 
   if (password.length < 6) {
-    message("authMessage", "La contraseña debe tener al menos 6 caracteres.", true);
+    message("authMessage", "La contraseña debe tener mínimo 6 caracteres.", true);
     return;
   }
 
   try {
     message("authMessage", "Creando cuenta...");
-    await createUserWithEmailAndPassword(auth, email, password);
+
+    await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
   } catch (error) {
-    console.error(error);
-    message("authMessage", "No se pudo crear la cuenta: " + error.message, true);
+    message("authMessage", error.message, true);
   }
 });
+
+// Cerrar sesión
 
 $("logoutBtn")?.addEventListener("click", async () => {
-  try {
-    await signOut(auth);
-  } catch (error) {
-    showError(error);
-  }
+  await signOut(auth);
 });
 
-// --------------------------------------------------
-// 4. PERFIL Y PERMISOS
-// --------------------------------------------------
+// ================================================
+// 4. PERFIL DEL EMPLEADO
+// ================================================
 
 async function loadProfile(user) {
   const reference = doc(db, "usuarios", user.uid);
   const snapshot = await getDoc(reference);
 
   if (!snapshot.exists()) {
-    const newProfile = {
-      nombre: user.displayName || user.email,
+    currentProfile = {
+      nombre: user.displayName || user.email.split("@")[0],
       email: user.email,
       rol: "empleado",
       activo: true
     };
 
-    await setDoc(reference, newProfile);
-    currentProfile = newProfile;
+    await setDoc(reference, currentProfile);
   } else {
     currentProfile = snapshot.data();
   }
 
   if (currentProfile.activo === false) {
     await signOut(auth);
-    throw new Error("Tu cuenta se encuentra desactivada.");
+    throw new Error("Tu cuenta está desactivada.");
   }
 
-  if ($("signedUser")) {
-    $("signedUser").textContent = user.email;
-  }
+  $("signedUser").textContent =
+    currentProfile.nombre || user.email;
 
-  if ($("roleLabel")) {
-    $("roleLabel").textContent = isAdmin()
-      ? "ADMINISTRADOR"
-      : "EMPLEADO";
-  }
+  $("roleLabel").textContent =
+    isAdmin() ? "ADMINISTRADOR" : "EMPLEADO";
 
-  if ($("welcomeTitle")) {
-    $("welcomeTitle").textContent =
-      `Bienvenido, ${currentProfile.nombre || "usuario"}`;
-  }
+  $("avatar").textContent =
+    (currentProfile.nombre || "B").charAt(0).toUpperCase();
 
-  if ($("adminTools")) {
-    $("adminTools").style.display = isAdmin() ? "block" : "none";
-  }
+  $("welcomeTitle").textContent =
+    `Hola, ${currentProfile.nombre || "bienvenido"}`;
 
-  if ($("targetEmployeeWrap")) {
-    $("targetEmployeeWrap").style.display = isAdmin() ? "block" : "none";
-  }
+  $("welcomeSubtitle").textContent =
+    isAdmin()
+      ? "Panel general de gestión de viáticos."
+      : "Aquí puedes gestionar tus viáticos y comprobantes.";
 
-  // El administrador comienza consultando todos los movimientos.
+  $("adminTools")?.classList.toggle("hidden", !isAdmin());
+
+  $("targetEmployeeWrap")?.classList.toggle("hidden", !isAdmin());
+
+  // El administrador visualiza todos los movimientos.
   showingAll = isAdmin();
 }
 
-// --------------------------------------------------
-// 5. CARGAR APLICACIÓN
-// --------------------------------------------------
+// ================================================
+// 5. MOSTRAR APLICACIÓN
+// ================================================
 
 async function loadApp() {
   $("authPanel")?.classList.add("hidden");
   $("appPanel")?.classList.remove("hidden");
+  $("logoutBtn")?.classList.remove("hidden");
 
-  setConnection("Conectando con Firebase...");
+  setConnection("Actualizando información...");
 
   await loadMovements();
 
@@ -243,83 +257,105 @@ async function loadApp() {
   $("splash")?.classList.add("hidden");
 }
 
-// --------------------------------------------------
-// 6. REGISTRAR MOVIMIENTO
-// --------------------------------------------------
+// ================================================
+// 6. BUSCAR EMPLEADO
+// ================================================
 
-$("movementForm")?.addEventListener("submit", async (event) => {
+async function findEmployeeByEmail(email) {
+  const snapshot = await getDocs(collection(db, "usuarios"));
+
+  const normalized = email.trim().toLowerCase();
+
+  for (const item of snapshot.docs) {
+    const profile = item.data();
+
+    if ((profile.email || "").toLowerCase() === normalized) {
+      return {
+        uid: item.id,
+        email: profile.email,
+        profile
+      };
+    }
+  }
+
+  return null;
+}
+
+// ================================================
+// 7. REGISTRAR VIÁTICOS Y GASTOS
+// ================================================
+
+$("movementForm")?.addEventListener("submit", async event => {
   event.preventDefault();
 
-  const saveButton = $("saveMovementBtn");
-
-  if (saveButton) saveButton.disabled = true;
+  const button = $("saveMovementBtn");
+  button.disabled = true;
+  button.textContent = "Guardando movimiento...";
 
   let uploadedPath = null;
 
   try {
     if (!currentUser || !currentProfile) {
-      throw new Error("No hay una sesión activa.");
+      throw new Error("No existe una sesión activa.");
     }
 
-    const tipo = $("movementType")?.value;
-    const fecha = $("movementDate")?.value;
-    const valor = Number($("amount")?.value);
-    const categoria = $("category")?.value || "Sin clasificar";
-    const descripcion = $("description")?.value.trim() || "";
-    const file = $("receipt")?.files?.[0];
+    const tipo = $("movementType").value;
+    const fecha = $("movementDate").value;
+    const valor = Number($("amount").value);
+    const categoria = $("category").value;
+    const descripcion = $("description").value.trim();
+    const file = $("receipt").files[0];
 
-    if (!tipo || !fecha || !Number.isFinite(valor) || valor <= 0) {
-      throw new Error("Completa el tipo, la fecha y el valor.");
+    if (!fecha || !Number.isFinite(valor) || valor <= 0) {
+      throw new Error("Verifica la fecha y el valor ingresado.");
+    }
+
+    if (!descripcion) {
+      throw new Error("Escribe una descripción del movimiento.");
     }
 
     if (tipo === "gasto" && !file) {
-      throw new Error("Selecciona el comprobante del gasto.");
+      throw new Error("Adjunta la fotografía del comprobante.");
     }
 
-    let recipient = currentUser;
+    // Identificar destinatario.
+    let recipient = {
+      uid: currentUser.uid,
+      email: currentUser.email
+    };
+
     let recipientProfile = currentProfile;
 
-    // El administrador puede asignar viáticos a empleados.
-    if (isAdmin() && tipo === "viatico") {
-      const targetEmail = $("targetEmployee")?.value.trim();
+    if (isAdmin() && $("targetEmployee").value.trim()) {
+      const employee = await findEmployeeByEmail(
+        $("targetEmployee").value
+      );
 
-      if (targetEmail) {
-        const employee = await findEmployeeByEmail(targetEmail);
-
-        if (!employee) {
-          throw new Error("No se encontró ese empleado.");
-        }
-
-        recipient = employee.user;
-        recipientProfile = employee.profile;
+      if (!employee) {
+        throw new Error("No encontramos al empleado indicado.");
       }
+
+      recipient = employee;
+      recipientProfile = employee.profile;
     }
 
-    // Validación y subida de comprobante.
+    // Validar archivo.
     let storagePath = null;
     let fileName = null;
 
     if (file) {
       const extension = file.name.split(".").pop().toLowerCase();
 
-      const allowedTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "application/pdf"
+      const allowed = [
+        "jpg", "jpeg", "png", "webp", "pdf"
       ];
 
-      const allowedExtensions = ["jpg", "jpeg", "png", "webp", "pdf"];
-
-      if (
-        !allowedTypes.includes(file.type) ||
-        !allowedExtensions.includes(extension)
-      ) {
-        throw new Error("Solo se permiten JPG, PNG, WEBP y PDF.");
+      if (!allowed.includes(extension)) {
+        throw new Error("Formato no permitido. Usa JPG, PNG, WEBP o PDF.");
       }
 
       if (file.size > 10 * 1024 * 1024) {
-        throw new Error("El archivo supera el límite de 10 MB.");
+        throw new Error("El archivo no puede superar 10 MB.");
       }
 
       const uniqueName =
@@ -328,53 +364,63 @@ $("movementForm")?.addEventListener("submit", async (event) => {
       storagePath = `${recipient.uid}/${uniqueName}`;
       fileName = file.name;
 
-      const { error: uploadError } = await supabase.storage
+      const { error } = await supabase.storage
         .from(RECEIPT_BUCKET)
         .upload(storagePath, file, {
           contentType: file.type,
           upsert: false
         });
 
-      if (uploadError) throw uploadError;
+      if (error) throw error;
 
       uploadedPath = storagePath;
     }
 
+    // Guardar información en Firebase.
     await addDoc(collection(db, "movimientos"), {
       uid: recipient.uid,
       emailEmpleado: recipient.email,
-      nombreEmpleado: recipientProfile.nombre || recipient.email,
+      nombreEmpleado:
+        recipientProfile.nombre || recipient.email,
+
       tipo,
       fecha,
       categoria,
       valor,
       descripcion,
+
       comprobante: storagePath,
       nombreArchivo: fileName,
-      estadoContable: tipo === "gasto" ? "pendiente" : "registrado",
+
+      estadoContable:
+        tipo === "gasto" ? "pendiente" : "por verificar",
+
       creadoPor: currentUser.uid,
       creadoEn: serverTimestamp()
     });
 
     $("movementForm").reset();
 
-    message("formMessage", "Movimiento registrado correctamente.");
+    message(
+      "formMessage",
+      tipo === "viatico"
+        ? "Viático registrado correctamente."
+        : "Gasto y comprobante registrados correctamente."
+    );
 
     showingAll = isAdmin();
     await loadMovements();
 
   } catch (error) {
-    console.error(error);
+    console.error("BER registro:", error);
 
-    // Si falló Firestore después de subir el archivo,
-    // intentamos retirar el archivo para no dejarlo huérfano.
     if (uploadedPath) {
       try {
         await supabase.storage
           .from(RECEIPT_BUCKET)
           .remove([uploadedPath]);
       } catch (cleanupError) {
-        console.error("No se pudo limpiar el archivo:", cleanupError);
+        console.error(cleanupError);
       }
     }
 
@@ -385,48 +431,26 @@ $("movementForm")?.addEventListener("submit", async (event) => {
     );
 
   } finally {
-    if (saveButton) saveButton.disabled = false;
+    button.disabled = false;
+    button.textContent = "Guardar movimiento →";
   }
 });
 
-// --------------------------------------------------
-// 7. BUSCAR EMPLEADO
-// --------------------------------------------------
+// ================================================
+// 8. CONSULTAR MOVIMIENTOS
+// ================================================
 
-async function findEmployeeByEmail(email) {
-  const usersSnapshot = await getDocs(collection(db, "usuarios"));
-
-  const normalizedEmail = email.toLowerCase();
-
-  for (const userDoc of usersSnapshot.docs) {
-    const profile = userDoc.data();
-
-    if ((profile.email || "").toLowerCase() === normalizedEmail) {
-      return {
-        user: {
-          uid: userDoc.id,
-          email: profile.email
-        },
-        profile
-      };
-    }
-  }
-
-  return null;
-}
-
-// --------------------------------------------------
-// 8. CARGAR MOVIMIENTOS
-// --------------------------------------------------
-
-async function loadMovements() {
-  if (!currentUser) {
-    throw new Error("No existe una sesión activa.");
-  }
+async function loadMovements(employeeUid = null) {
+  if (!currentUser) return;
 
   let movementQuery;
 
-  if (isAdmin() && showingAll) {
+  if (employeeUid) {
+    movementQuery = query(
+      collection(db, "movimientos"),
+      where("uid", "==", employeeUid)
+    );
+  } else if (isAdmin() && showingAll) {
     movementQuery = collection(db, "movimientos");
   } else {
     movementQuery = query(
@@ -437,7 +461,7 @@ async function loadMovements() {
 
   const snapshot = await getDocs(movementQuery);
 
-  movements = snapshot.docs.map((item) => ({
+  movements = snapshot.docs.map(item => ({
     id: item.id,
     ...item.data()
   }));
@@ -447,74 +471,112 @@ async function loadMovements() {
   );
 
   await renderMovements();
+  await renderGallery();
   updateTotals();
 }
 
-// --------------------------------------------------
-// 9. MOSTRAR MOVIMIENTOS Y COMPROBANTES
-// --------------------------------------------------
+// ================================================
+// 9. MOSTRAR HISTORIAL
+// ================================================
+
+async function getReceiptUrl(path) {
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(RECEIPT_BUCKET)
+    .createSignedUrl(path, 3600);
+
+  if (error) {
+    console.error("Comprobante:", error);
+    return null;
+  }
+
+  return data?.signedUrl || null;
+}
 
 async function renderMovements() {
   const container = $("movementsList");
   if (!container) return;
 
   if (!movements.length) {
-    container.innerHTML = "<p>No hay movimientos registrados.</p>";
+    container.innerHTML = `
+      <div class="empty-state">
+        <strong>No hay movimientos registrados</strong>
+        <p>Los movimientos aparecerán aquí.</p>
+      </div>
+    `;
     return;
   }
 
   const cards = await Promise.all(
-    movements.map(async (item) => {
-      let receiptUrl = null;
+    movements.map(async item => {
+      const icon = item.tipo === "viatico" ? "↗" : "↙";
 
-      if (item.comprobante) {
-        try {
-          const { data, error } = await supabase.storage
-            .from(RECEIPT_BUCKET)
-            .createSignedUrl(item.comprobante, 3600);
+      const amountClass =
+        item.tipo === "viatico" ? "advance" : "expense";
 
-          if (error) {
-            console.error("Error al consultar comprobante:", error);
-          } else {
-            receiptUrl = data?.signedUrl || null;
-          }
-        } catch (error) {
-          console.error("Error de Supabase:", error);
-        }
-      }
+      const receiptUrl = await getReceiptUrl(item.comprobante);
 
-      const canDelete = isAdmin() || item.uid === currentUser.uid;
+      const canDelete =
+        isAdmin() || item.uid === currentUser.uid;
 
       return `
-        <article class="movement-card">
+        <article class="movement-item">
+
+          <div class="movement-icon">${icon}</div>
+
           <div class="movement-info">
-            <h3>${safeText(item.nombreEmpleado || item.emailEmpleado)}</h3>
-            <p><strong>Tipo:</strong> ${safeText(item.tipo)}</p>
-            <p><strong>Fecha:</strong> ${safeText(item.fecha)}</p>
-            <p><strong>Categoría:</strong> ${safeText(item.categoria)}</p>
-            <p><strong>Valor:</strong> ${money(item.valor)}</p>
-            <p><strong>Estado:</strong> ${safeText(item.estadoContable || "pendiente")}</p>
-            ${item.descripcion ? `<p>${safeText(item.descripcion)}</p>` : ""}
-            ${item.nombreArchivo ? `<p><strong>Archivo:</strong> ${safeText(item.nombreArchivo)}</p>` : ""}
+            <strong>${safeText(item.nombreEmpleado || item.emailEmpleado)}</strong>
+
+            <small>
+              ${safeText(item.tipo.toUpperCase())} ·
+              ${safeText(item.fecha)}
+            </small>
+
+            <small>
+              ${safeText(item.categoria || "Sin categoría")}
+            </small>
+
+            <small>
+              Estado: ${safeText(item.estadoContable || "Pendiente")}
+            </small>
+
+            ${item.descripcion
+              ? `<small>${safeText(item.descripcion)}</small>`
+              : ""}
+
+            ${receiptUrl ? `
+              <a class="receipt-link"
+                 href="${receiptUrl}"
+                 target="_blank"
+                 rel="noopener noreferrer">
+                 VER COMPROBANTE ↗
+              </a>
+            ` : ""}
+
+            <div class="movement-actions">
+
+              ${isAdmin() && item.tipo === "gasto" ? `
+                <button class="tiny-btn"
+                        data-account="${item.id}">
+                  Contabilizar
+                </button>
+              ` : ""}
+
+              ${canDelete ? `
+                <button class="tiny-btn"
+                        data-delete="${item.id}">
+                  Eliminar
+                </button>
+              ` : ""}
+
+            </div>
           </div>
 
-          ${receiptUrl ? `
-            <a href="${receiptUrl}" target="_blank" rel="noopener noreferrer">
-              VER COMPROBANTE
-            </a>
-          ` : ""}
+          <div class="movement-amount ${amountClass}">
+            ${money(item.valor)}
+          </div>
 
-          ${item.tipo === "gasto" && isAdmin() ? `
-            <button type="button" data-account="${item.id}">
-              CONTABILIZAR
-            </button>
-          ` : ""}
-
-          ${canDelete ? `
-            <button type="button" data-delete="${item.id}">
-              ELIMINAR
-            </button>
-          ` : ""}
         </article>
       `;
     })
@@ -522,53 +584,106 @@ async function renderMovements() {
 
   container.innerHTML = cards.join("");
 
-  container.querySelectorAll("[data-delete]").forEach((button) => {
+  container.querySelectorAll("[data-delete]").forEach(button => {
     button.addEventListener("click", () => {
       deleteMovement(button.dataset.delete);
     });
   });
 
-  container.querySelectorAll("[data-account]").forEach((button) => {
+  container.querySelectorAll("[data-account]").forEach(button => {
     button.addEventListener("click", () => {
       accountMovement(button.dataset.account);
     });
   });
 }
 
-// --------------------------------------------------
-// 10. CONTABILIZAR COMPROBANTE
-// --------------------------------------------------
+// ================================================
+// 10. GALERÍA DE COMPROBANTES
+// ================================================
 
-async function accountMovement(id) {
-  if (!isAdmin()) {
-    alert("Solo un administrador puede contabilizar gastos.");
+async function renderGallery() {
+  const gallery = $("receiptsGallery");
+  if (!gallery) return;
+
+  const receipts = movements.filter(item => item.comprobante);
+
+  if (!receipts.length) {
+    gallery.innerHTML = `
+      <div class="empty-state">
+        <strong>Galería de comprobantes</strong>
+        <p>Aquí aparecerán los documentos registrados.</p>
+      </div>
+    `;
     return;
   }
 
-  const item = movements.find((movement) => movement.id === id);
+  const html = await Promise.all(
+    receipts.map(async item => {
+      const url = await getReceiptUrl(item.comprobante);
+
+      if (!url) return "";
+
+      const isImage = /\.(jpg|jpeg|png|webp)$/i.test(
+        item.nombreArchivo || ""
+      );
+
+      return `
+        <article class="receipt-card">
+
+          ${isImage ? `
+            <a href="${url}" target="_blank" rel="noopener noreferrer">
+              <img src="${url}"
+                   alt="Comprobante de ${safeText(item.nombreEmpleado)}"
+                   loading="lazy">
+            </a>
+          ` : `
+            <a href="${url}" target="_blank" rel="noopener noreferrer">
+              <div class="movement-icon">PDF</div>
+              Ver documento
+            </a>
+          `}
+
+          <p><strong>${safeText(item.nombreEmpleado)}</strong></p>
+          <p>${safeText(item.categoria)}</p>
+          <p>${safeText(item.fecha)}</p>
+          <p>${money(item.valor)}</p>
+
+        </article>
+      `;
+    })
+  );
+
+  gallery.innerHTML = html.filter(Boolean).join("");
+}
+
+// ================================================
+// 11. CONTABILIZAR GASTOS
+// ================================================
+
+async function accountMovement(id) {
+  if (!isAdmin()) {
+    notify("No tienes permisos de administrador.");
+    return;
+  }
+
+  const item = movements.find(m => m.id === id);
   if (!item) return;
+
+  const proveedor = prompt("Nombre del proveedor:", item.proveedor || "");
+  if (proveedor === null) return;
+
+  const nit = prompt("NIT del proveedor:", item.nit || "");
+  if (nit === null) return;
 
   const fecha = prompt("Fecha de la factura:", item.fecha || "");
   if (fecha === null) return;
 
-  const proveedor = prompt("Nombre del proveedor:", "");
-  if (proveedor === null) return;
-
-  const nit = prompt("NIT del proveedor (opcional):", "");
-  if (nit === null) return;
-
-  const categoria = prompt(
-    "Categoría del gasto:",
-    item.categoria || "Otros"
-  );
-  if (categoria === null) return;
-
   const total = Number(
-    prompt("Valor total de la factura:", String(item.valor || ""))
+    prompt("Valor de la factura:", String(item.valor))
   );
 
   if (!Number.isFinite(total) || total <= 0) {
-    alert("El valor ingresado no es válido.");
+    notify("El valor ingresado no es válido.");
     return;
   }
 
@@ -576,10 +691,9 @@ async function accountMovement(id) {
     await setDoc(
       doc(db, "movimientos", id),
       {
-        fechaContable: fecha,
         proveedor,
         nit,
-        categoria,
+        fechaContable: fecha,
         valor: total,
         estadoContable: "contabilizado",
         contabilizadoPor: currentUser.uid,
@@ -588,25 +702,95 @@ async function accountMovement(id) {
       { merge: true }
     );
 
-    alert("Comprobante contabilizado y actualizado.");
+    notify("Gasto contabilizado correctamente.");
     await loadMovements();
 
   } catch (error) {
     console.error(error);
-    alert("No se pudo contabilizar: " + error.message);
+    notify("Error al contabilizar: " + error.message);
   }
 }
 
-// --------------------------------------------------
-// 11. ELIMINAR MOVIMIENTO Y COMPROBANTE
-// --------------------------------------------------
+// ================================================
+// 12. CONTABILIZACIÓN GENERAL
+// ================================================
+
+$("accountingBtn")?.addEventListener("click", () => {
+  if (!isAdmin()) {
+    notify("Esta función es exclusiva del administrador.");
+    return;
+  }
+
+  const advances = movements
+    .filter(item => item.tipo === "viatico")
+    .reduce((sum, item) => sum + Number(item.valor || 0), 0);
+
+  const expenses = movements
+    .filter(item => item.tipo === "gasto")
+    .reduce((sum, item) => sum + Number(item.valor || 0), 0);
+
+  const pending = movements.filter(
+    item => item.tipo === "gasto" &&
+    item.estadoContable !== "contabilizado"
+  ).length;
+
+  const balance = advances - expenses;
+
+  const summary = $("accountingSummary");
+  const details = $("accountingDetails");
+
+  summary?.classList.remove("hidden");
+
+  if (details) {
+    details.innerHTML = `
+      <div class="accounting-summary">
+
+        <div class="accounting-card">
+          <div class="label">Viáticos asignados o reportados</div>
+          <strong>${money(advances)}</strong>
+        </div>
+
+        <div class="accounting-card">
+          <div class="label">Gastos reportados</div>
+          <strong>${money(expenses)}</strong>
+        </div>
+
+        <div class="accounting-card">
+          <div class="label">Saldo</div>
+          <strong>${money(balance)}</strong>
+        </div>
+
+        <div class="accounting-card">
+          <div class="label">Comprobantes pendientes</div>
+          <strong>${pending}</strong>
+        </div>
+
+      </div>
+
+      <p class="small">
+        Informe generado con los movimientos actualmente consultados.
+        Los viáticos registrados por empleados deben verificarse antes
+        de considerarlos como valores aprobados.
+      </p>
+    `;
+
+    summary.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+});
+
+// ================================================
+// 13. ELIMINAR MOVIMIENTOS
+// ================================================
 
 async function deleteMovement(id) {
-  const item = movements.find((movement) => movement.id === id);
+  const item = movements.find(m => m.id === id);
   if (!item) return;
 
   if (!isAdmin() && item.uid !== currentUser.uid) {
-    alert("No tienes permiso para eliminar este documento.");
+    notify("No tienes autorización para eliminar este movimiento.");
     return;
   }
 
@@ -625,29 +809,30 @@ async function deleteMovement(id) {
 
     await deleteDoc(doc(db, "movimientos", id));
 
-    alert("Documento eliminado.");
+    notify("Movimiento eliminado correctamente.");
+
     await loadMovements();
 
   } catch (error) {
     console.error(error);
-    alert("No se pudo eliminar: " + error.message);
+    notify("No se pudo eliminar: " + error.message);
   }
 }
 
-// --------------------------------------------------
-// 12. TOTALES Y SALDOS
-// --------------------------------------------------
+// ================================================
+// 14. RESUMEN FINANCIERO
+// ================================================
 
 function updateTotals() {
   const advances = movements
-    .filter((item) => item.tipo === "viatico")
+    .filter(item => item.tipo === "viatico")
     .reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
   const expenses = movements
-    .filter((item) => item.tipo === "gasto")
+    .filter(item => item.tipo === "gasto")
     .reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
-  const remaining = advances - expenses;
+  const balance = advances - expenses;
 
   if ($("totalAdvances")) {
     $("totalAdvances").textContent = money(advances);
@@ -658,29 +843,18 @@ function updateTotals() {
   }
 
   if ($("balance")) {
-    $("balance").textContent = money(remaining);
+    $("balance").textContent = money(balance);
   }
 }
 
-// --------------------------------------------------
-// 13. CONSULTA ADMINISTRATIVA
-// --------------------------------------------------
-
-$("allMovementsBtn")?.addEventListener("click", async () => {
-  if (!isAdmin()) return;
-
-  try {
-    showingAll = true;
-    await loadMovements();
-  } catch (error) {
-    showError(error);
-  }
-});
+// ================================================
+// 15. CONSULTA DE EMPLEADOS
+// ================================================
 
 $("filterEmployeeBtn")?.addEventListener("click", async () => {
   if (!isAdmin()) return;
 
-  const email = $("employeeFilter")?.value.trim();
+  const email = $("employeeFilter").value.trim();
 
   try {
     if (!email) {
@@ -692,37 +866,38 @@ $("filterEmployeeBtn")?.addEventListener("click", async () => {
     const employee = await findEmployeeByEmail(email);
 
     if (!employee) {
-      alert("No se encontró el empleado.");
+      notify("No encontramos ese empleado.");
       return;
     }
 
-    const snapshot = await getDocs(
-      query(
-        collection(db, "movimientos"),
-        where("uid", "==", employee.user.uid)
-      )
-    );
+    showingAll = false;
+    await loadMovements(employee.uid);
 
-    movements = snapshot.docs.map((item) => ({
-      id: item.id,
-      ...item.data()
-    }));
-
-    movements.sort((a, b) =>
-      String(b.fecha || "").localeCompare(String(a.fecha || ""))
-    );
-
-    await renderMovements();
-    updateTotals();
+    notify("Información del empleado consultada.");
 
   } catch (error) {
-    showError(error);
+    console.error(error);
+    notify("Error al consultar: " + error.message);
   }
 });
 
-// --------------------------------------------------
-// 14. EXPORTAR INFORMACIÓN A CSV
-// --------------------------------------------------
+$("allMovementsBtn")?.addEventListener("click", async () => {
+  if (!isAdmin()) return;
+
+  try {
+    showingAll = true;
+    $("employeeFilter").value = "";
+    await loadMovements();
+    notify("Mostrando todos los movimientos.");
+  } catch (error) {
+    console.error(error);
+    notify(error.message);
+  }
+});
+
+// ================================================
+// 16. EXPORTAR REPORTE CSV
+// ================================================
 
 $("exportBtn")?.addEventListener("click", () => {
   if (!isAdmin()) return;
@@ -736,10 +911,10 @@ $("exportBtn")?.addEventListener("click", () => {
     "Proveedor",
     "NIT",
     "Valor",
-    "Estado contable"
+    "Estado"
   ];
 
-  const rows = movements.map((item) => [
+  const rows = movements.map(item => [
     item.nombreEmpleado,
     item.emailEmpleado,
     item.tipo,
@@ -748,65 +923,64 @@ $("exportBtn")?.addEventListener("click", () => {
     item.proveedor || "",
     item.nit || "",
     item.valor,
-    item.estadoContable || ""
+    item.estadoContable
   ]);
 
   const csv = [headers, ...rows]
-    .map((row) =>
-      row.map((value) =>
+    .map(row =>
+      row.map(value =>
         `"${String(value ?? "").replace(/"/g, '""')}"`
       ).join(";")
     )
     .join("\n");
 
-  const blob = new Blob(["\uFEFF" + csv], {
-    type: "text/csv;charset=utf-8;"
-  });
+  const blob = new Blob(
+    ["\uFEFF" + csv],
+    { type: "text/csv;charset=utf-8;" }
+  );
 
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = "reporte_viaticos_BER.csv";
+  link.download = "BER_reporte_viaticos.csv";
   link.click();
 
   URL.revokeObjectURL(url);
 });
 
-// --------------------------------------------------
-// 15. ACTUALIZAR INFORMACIÓN
-// --------------------------------------------------
+// ================================================
+// 17. ACTUALIZAR INFORMACIÓN
+// ================================================
 
 $("refreshBtn")?.addEventListener("click", async () => {
   try {
     await loadMovements();
     setConnection("Conectado");
+    notify("Información actualizada.");
   } catch (error) {
-    showError(error);
+    console.error(error);
+    notify("No se pudo actualizar la información.");
   }
 });
 
-// --------------------------------------------------
-// 16. ESTADO DE INTERNET
-// --------------------------------------------------
-
-function updateConnection() {
-  if (!navigator.onLine) {
-    setConnection("Sin conexión a internet", true);
-  }
-}
+// ================================================
+// 18. CONEXIÓN A INTERNET
+// ================================================
 
 window.addEventListener("online", () => {
-  setConnection("Internet disponible. Actualiza la información.");
+  setConnection("Internet disponible");
 });
 
-window.addEventListener("offline", updateConnection);
+window.addEventListener("offline", () => {
+  setConnection("Sin conexión", true);
+});
 
-// --------------------------------------------------
-// 17. INICIO DE SESIÓN Y CARGA AUTOMÁTICA
-// --------------------------------------------------
+// ================================================
+// 19. INICIO AUTOMÁTICO
+// ================================================
 
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   currentUser = user;
 
   if (!user) {
@@ -817,32 +991,37 @@ onAuthStateChanged(auth, async (user) => {
 
     $("authPanel")?.classList.remove("hidden");
     $("appPanel")?.classList.add("hidden");
+    $("logoutBtn")?.classList.add("hidden");
     $("splash")?.classList.add("hidden");
 
     setConnection("Sesión cerrada");
     return;
   }
 
-  // Evita cargar dos veces la misma sesión.
   if (loadingUid === user.uid) return;
 
   loadingUid = user.uid;
 
-  setConnection("Conectando con Firebase...");
-
   try {
+    setConnection("Conectando...");
+
     await loadProfile(user);
     await loadApp();
 
   } catch (error) {
-    showError(error);
+    console.error("Inicio BER:", error);
 
-    // Muestra el error en lugar de dejar la aplicación
-    // indefinidamente en el estado de conexión.
-    $("authPanel")?.classList.add("hidden");
-    $("appPanel")?.classList.remove("hidden");
+    message(
+      "authMessage",
+      "No fue posible iniciar la aplicación: " + error.message,
+      true
+    );
+
+    $("authPanel")?.classList.remove("hidden");
+    $("appPanel")?.classList.add("hidden");
     $("splash")?.classList.add("hidden");
 
     loadingUid = null;
+    setConnection("Error de conexión", true);
   }
 });
