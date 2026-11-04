@@ -1,28 +1,26 @@
 
 const CACHE_NAME = "ber-viaticos-v2";
 
-const FILES_TO_CACHE = [
+const ARCHIVOS = [
   "./",
   "./index.html",
-  "./styles.css",
   "./manifest.json",
-  "./app.js",
-  "./firebase-config.js",
-  "./supabase-config.js",
-  "./icons/icon-192.png",
-  "./icons/icon-152.png"
+  "./styles.css",
+  "./img/logo-ber-original.png",
+  "./img/icon-192.png",
+  "./img/icon-512.png"
 ];
 
+// Instalar y guardar archivos esenciales
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.addAll(FILES_TO_CACHE);
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(ARCHIVOS))
+      .then(() => self.skipWaiting())
   );
-
-  self.skipWaiting();
 });
 
+// Activar y limpiar versiones anteriores
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -31,12 +29,11 @@ self.addEventListener("activate", (event) => {
           .filter((key) => key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
-    )
+    ).then(() => self.clients.claim())
   );
-
-  self.clients.claim();
 });
 
+// Cargar páginas y recursos
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
@@ -46,9 +43,25 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(async () => {
-        return await caches.match("./index.html");
-      })
+      fetch(event.request)
+        .catch(() => caches.match("./index.html"))
     );
+    return;
   }
+
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+
+      return fetch(event.request).then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, copy);
+          });
+        }
+        return response;
+      });
+    })
+  );
 });

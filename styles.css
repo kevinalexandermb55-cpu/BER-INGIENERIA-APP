@@ -939,3 +939,102 @@ textarea {
     height: 40px;
   }
 }
+
+/* LOGO ORIGINAL BER */
+
+.splash-logo {
+  display: block;
+  width: min(190px, 55vw);
+  max-height: 100px;
+  object-fit: contain;
+  margin: 18px auto 12px;
+  animation: fadeUp .5s .5s both;
+}
+
+.brand-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand {
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .splash-logo {
+    width: min(165px, 50vw);
+  }
+
+  .brand-logo {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* LOGO ORIGINAL BER */
+
+.splash-logo {
+  display: block;
+  width: min(190px, 55vw);
+  max-height: 100px;
+  object-fit: contain;
+  margin: 18px auto 12px;
+  animation: fadeUp .5s .5s both;
+}
+
+.brand-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand {
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .splash-logo {
+    width: min(165px, 50vw);
+  }
+
+  .brand-logo {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* LOGO ORIGINAL BER */
+
+.splash-logo {
+  display: block;
+  width: min(190px, 55vw);
+  max-height: 100px;
+  object-fit: contain;
+  margin: 18px auto 12px;
+  animation: fadeUp .5s .5s both;
+}
+
+.brand-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand {
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .splash-logo {
+    width: min(165px, 50vw);
+  }
+
+  .brand-logo {
+    width: 40px;
+    height: 40px;
+  }
+}
