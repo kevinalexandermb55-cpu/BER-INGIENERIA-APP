@@ -1,706 +1,224 @@
 
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-
   <meta name="theme-color" content="#07172d">
-  <meta name="description" content="BER Ingeniería SAS - Gestión y control de viáticos y gastos.">
-
-  <title>BER Ingeniería | Gestión de Viáticos</title>
-
+  <meta name="description" content="Registro de actividades BER Ingeniería S.A.S.">
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" href="./img/logo-ber-original.png" type="image/png">
-  <link rel="apple-touch-icon" href="./icons/icon-152.png">
-
+  <link rel="icon" href="./icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./styles.css">
+  <title>BER Ingeniería | Registro de actividades</title>
 </head>
-
 <body>
 
-<!-- =====================================
-     PRESENTACIÓN CORPORATIVA
-===================================== -->
-
 <div id="splash" class="splash">
-
-  <div class="splash-orbit orbit-one"></div>
-  <div class="splash-orbit orbit-two"></div>
-
   <div class="splash-content">
-
     <div class="ber-mark">
       <span>B</span><span>E</span><span>R</span>
     </div>
-
     <div class="splash-line"></div>
-
-    <img
-      src="./img/logo-ber-original.png"
-      alt="Logo oficial BER Ingeniería"
-      class="splash-logo"
-      fetchpriority="high"
-    >
-
-    <div class="splash-title">
-      <b>INGENIERÍA S.A.S.</b>
-    </div>
-
-    <div class="splash-subtitle">
-      GESTIÓN Y CONTROL DE VIÁTICOS
-    </div>
-
-    <div class="loading-track">
-      <i></i>
-    </div>
-
+    <img src="./img/logo-ber-original.png"
+         alt="Logo original BER Ingeniería"
+         style="width:min(230px,65vw);height:auto;object-fit:contain;margin:10px auto;">
+    <div class="splash-title">INGENIERÍA <b>S.A.S.</b></div>
+    <div class="splash-subtitle">REGISTRO DE ACTIVIDADES</div>
+    <div class="loading-track"><i></i></div>
   </div>
 </div>
 
-
-<!-- =====================================
-     APLICACIÓN
-===================================== -->
-
 <main class="shell">
 
-  <!-- ENCABEZADO -->
+<header class="topbar">
+  <a class="brand" href="#">
+    <img src="./img/logo-ber-original.png"
+         alt="BER Ingeniería"
+         style="width:145px;max-height:55px;object-fit:contain;">
+  </a>
+  <div class="top-actions">
+    <span id="connectionStatus" class="status-dot">Conectando</span>
+    <button id="logoutBtn" class="btn btn-ghost hidden" type="button">Salir</button>
+  </div>
+</header>
 
-  <header class="topbar">
+<section id="authPanel" class="auth-layout">
+  <div class="hero-copy">
+    <div class="eyebrow">PLATAFORMA CORPORATIVA</div>
+    <h1>Gestión de actividades,<br><em>en un solo lugar.</em></h1>
+    <p>Registra tus actividades, adjunta evidencias y consulta tu historial de trabajo.</p>
+  </div>
 
-    <a class="brand" href="./">
+  <div class="auth-card">
+    <div class="card-kicker">ACCESO SEGURO</div>
+    <h2>Bienvenido</h2>
+    <p class="muted">Ingresa con tu cuenta corporativa.</p>
 
-      <img
-        src="./img/logo-ber-original.png"
-        alt="BER Ingeniería"
-        class="brand-logo"
-      >
+    <form id="loginForm">
+      <label for="email">Correo electrónico</label>
+      <input id="email" type="email" autocomplete="username" required>
 
-      <span class="brand-copy">
-        <strong>BER INGENIERÍA S.A.S.</strong>
-        <small>GESTIÓN DE VIÁTICOS</small>
-      </span>
+      <label for="password">Contraseña</label>
+      <input id="password" type="password" autocomplete="current-password" required>
 
-    </a>
+      <button class="btn btn-primary btn-full" type="submit">Ingresar →</button>
+    </form>
 
-    <div class="top-actions">
+    <button id="showSignup" class="text-button" type="button">
+      ¿Primera vez? Crear cuenta
+    </button>
+    <div id="authMessage" class="notice hidden"></div>
+  </div>
+</section>
 
-      <span id="connectionStatus" class="status-dot">
-        Conectando
-      </span>
+<section id="appPanel" class="hidden">
 
-      <button
-        id="logoutBtn"
-        class="btn btn-ghost hidden"
-        type="button"
-      >
-        Salir
-      </button>
+  <div class="welcome-row">
+    <div>
+      <div class="eyebrow">PANEL DE CONTROL</div>
+      <h1 id="welcomeTitle">Mis actividades</h1>
+      <p id="welcomeSubtitle" class="muted">Gestiona tus registros.</p>
+    </div>
+    <div class="profile-chip">
+      <span class="avatar" id="avatar">B</span>
+      <div>
+        <strong id="signedUser">Usuario</strong>
+        <small id="roleLabel">Empleado</small>
+      </div>
+    </div>
+  </div>
 
+  <div class="stats-grid">
+    <article class="stat-card">
+      <div class="stat-label">ACTIVIDADES REGISTRADAS</div>
+      <div class="stat-value" id="totalActivities">0</div>
+    </article>
+    <article class="stat-card">
+      <div class="stat-label">ACTIVIDADES DE HOY</div>
+      <div class="stat-value" id="todayActivities">0</div>
+    </article>
+    <article class="stat-card balance-card">
+      <div class="stat-label">EVIDENCIAS ADJUNTAS</div>
+      <div class="stat-value" id="totalEvidence">0</div>
+    </article>
+  </div>
+
+  <section id="adminTools" class="panel hidden">
+    <div class="panel-heading">
+      <div>
+        <div class="card-kicker">ADMINISTRACIÓN</div>
+        <h2>Consulta de empleados</h2>
+      </div>
+      <span class="admin-pill">ADMIN</span>
     </div>
 
-  </header>
+    <label for="employeeFilter">Correo del empleado</label>
+    <input id="employeeFilter" type="email" placeholder="empleado@empresa.com">
 
-
-  <!-- =====================================
-       INICIO DE SESIÓN
-  ===================================== -->
-
-  <section id="authPanel" class="auth-layout">
-
-    <div class="hero-copy">
-
-      <div class="eyebrow">
-        PLATAFORMA CORPORATIVA
-      </div>
-
-      <h1>
-        El control de tus gastos,
-        <br>
-        <em>en un solo lugar.</em>
-      </h1>
-
-      <p>
-        Registra tus viáticos, informa tus gastos,
-        adjunta tus comprobantes y consulta tus movimientos
-        desde cualquier dispositivo.
-      </p>
-
-      <div class="feature-row">
-        <span>✓ Control de viáticos</span>
-        <span>✓ Comprobantes digitales</span>
-        <span>✓ Gestión financiera</span>
-      </div>
-
+    <div class="admin-grid">
+      <button id="filterEmployeeBtn" class="btn btn-secondary" type="button">Consultar</button>
+      <button id="allMovementsBtn" class="btn btn-ghost" type="button">Ver todos</button>
+      <button id="exportBtn" class="btn btn-ghost" type="button">Exportar CSV</button>
     </div>
-
-
-    <div class="auth-card">
-
-      <div class="card-kicker">
-        ACCESO SEGURO
-      </div>
-
-      <h2 id="authTitle">
-        Bienvenido
-      </h2>
-
-      <p id="authDescription" class="muted">
-        Ingresa con tu cuenta corporativa.
-      </p>
-
-
-      <form id="loginForm" data-mode="login">
-
-        <label for="email">
-          Correo electrónico
-        </label>
-
-        <input
-          id="email"
-          type="email"
-          placeholder="usuario@empresa.com"
-          autocomplete="username"
-          required
-        >
-
-        <label for="password">
-          Contraseña
-        </label>
-
-        <input
-          id="password"
-          type="password"
-          placeholder="Ingresa tu contraseña"
-          autocomplete="current-password"
-          minlength="6"
-          required
-        >
-
-        <button
-          id="loginBtn"
-          class="btn btn-primary btn-full"
-          type="submit"
-        >
-          Ingresar →
-        </button>
-
-      </form>
-
-
-      <button
-        id="showSignup"
-        class="text-button"
-        type="button"
-      >
-        ¿Primera vez? Crear cuenta
-      </button>
-
-      <div id="authMessage" class="notice hidden"></div>
-
-    </div>
-
   </section>
 
-
-  <!-- =====================================
-       PANEL PRINCIPAL
-  ===================================== -->
-
-  <section id="appPanel" class="hidden">
-
-    <!-- BIENVENIDA -->
-
-    <div class="welcome-row">
-
-      <div>
-
-        <div class="eyebrow">
-          PANEL DE CONTROL
-        </div>
-
-        <h1 id="welcomeTitle">
-          Resumen
-        </h1>
-
-        <p id="welcomeSubtitle" class="muted">
-          Consulta tus movimientos y viáticos.
-        </p>
-
-      </div>
-
-
-      <div class="profile-chip">
-
-        <span id="avatar" class="avatar">
-          B
-        </span>
-
-        <div>
-          <strong id="signedUser">Usuario</strong>
-          <small id="roleLabel">Empleado</small>
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <!-- RESUMEN FINANCIERO -->
-
-    <div class="stats-grid">
-
-      <article class="stat-card">
-
-        <div class="stat-label">
-          VIÁTICOS RECIBIDOS
-        </div>
-
-        <div id="totalAdvances" class="stat-value">
-          $0
-        </div>
-
-      </article>
-
-
-      <article class="stat-card">
-
-        <div class="stat-label">
-          GASTOS REPORTADOS
-        </div>
-
-        <div id="totalExpenses" class="stat-value">
-          $0
-        </div>
-
-      </article>
-
-
-      <article class="stat-card balance-card">
-
-        <div class="stat-label">
-          SALDO DISPONIBLE
-        </div>
-
-        <div id="balance" class="stat-value">
-          $0
-        </div>
-
-      </article>
-
-    </div>
-
-
-    <!-- =====================================
-         ADMINISTRACIÓN
-    ===================================== -->
-
-    <section id="adminTools" class="panel hidden">
-
-      <div class="panel-heading">
-
-        <div>
-          <div class="card-kicker">
-            ADMINISTRACIÓN
-          </div>
-
-          <h2>Control de empleados</h2>
-        </div>
-
-        <span class="admin-pill">
-          ADMIN
-        </span>
-
-      </div>
-
-      <label for="employeeFilter">
-        Correo del empleado
-      </label>
-
-      <input
-        id="employeeFilter"
-        type="email"
-        placeholder="empleado@empresa.com"
-      >
-
-      <div class="admin-grid">
-
-        <button
-          id="filterEmployeeBtn"
-          class="btn btn-secondary"
-          type="button"
-        >
-          Consultar
-        </button>
-
-        <button
-          id="allMovementsBtn"
-          class="btn btn-ghost"
-          type="button"
-        >
-          Ver todos
-        </button>
-
-        <button
-          id="exportBtn"
-          class="btn btn-ghost"
-          type="button"
-        >
-          Exportar CSV
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================
-         REGISTRO Y COMPROBANTES
-    ===================================== -->
-
-    <div class="content-grid">
-
-
-      <!-- REGISTRO DE MOVIMIENTOS -->
-
-      <section class="panel">
-
-        <div class="panel-heading">
-
-          <div>
-            <div class="card-kicker">
-              REGISTRO
-            </div>
-
-            <h2>Nuevo movimiento</h2>
-          </div>
-
-        </div>
-
-
-        <form id="movementForm">
-
-          <div id="targetEmployeeWrap" class="hidden">
-
-            <label for="targetEmployee">
-              Empleado destinatario
-            </label>
-
-            <input
-              id="targetEmployee"
-              type="email"
-              placeholder="Correo del empleado"
-            >
-
-          </div>
-
-
-          <label for="movementType">
-            Tipo de movimiento
-          </label>
-
-          <select id="movementType" required>
-
-            <option value="gasto">
-              Registrar gasto
-            </option>
-
-            <option value="viatico">
-              Registrar viático recibido
-            </option>
-
-          </select>
-
-
-          <label for="movementDate">
-            Fecha
-          </label>
-
-          <input
-            id="movementDate"
-            type="date"
-            required
-          >
-
-
-          <label for="category">
-            Categoría
-          </label>
-
-          <select id="category" required>
-
-            <option value="Alimentación">Alimentación</option>
-            <option value="Transporte">Transporte</option>
-            <option value="Hotel">Hotel</option>
-            <option value="Combustible">Combustible</option>
-            <option value="Peajes y parqueaderos">Peajes y parqueaderos</option>
-            <option value="Materiales">Materiales</option>
-            <option value="Otros">Otros</option>
-            <option value="Viático asignado">Viático asignado</option>
-
-          </select>
-
-
-          <label for="amount">
-            Valor en pesos colombianos
-          </label>
-
-          <input
-            id="amount"
-            type="number"
-            min="1"
-            step="1"
-            placeholder="Ej. 250000"
-            required
-          >
-
-
-          <label for="description">
-            Descripción
-          </label>
-
-          <textarea
-            id="description"
-            rows="3"
-            maxlength="500"
-            placeholder="Describe el movimiento..."
-            required
-          ></textarea>
-
-
-          <label for="receipt">
-            Fotografía del comprobante
-          </label>
-
-          <input
-            id="receipt"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,application/pdf"
-            capture="environment"
-          >
-
-          <p class="file-hint">
-            Adjunta facturas, recibos o comprobantes.
-            Tamaño máximo: 10 MB.
-          </p>
-
-
-          <button
-            id="saveMovementBtn"
-            class="btn btn-primary btn-full"
-            type="submit"
-          >
-            Guardar movimiento →
-          </button>
-
-          <div id="formMessage" class="notice hidden"></div>
-
-        </form>
-
-      </section>
-
-
-      <!-- GALERÍA -->
-
-      <section class="panel">
-
-        <div class="panel-heading">
-
-          <div>
-            <div class="card-kicker">
-              DOCUMENTOS
-            </div>
-
-            <h2>Mis comprobantes</h2>
-          </div>
-
-          <span class="panel-icon">
-            ▧
-          </span>
-
-        </div>
-
-
-        <p class="muted">
-          Consulta los documentos relacionados con tus gastos.
-        </p>
-
-
-        <div id="receiptsGallery" class="movement-list">
-
-          <div class="empty-state">
-
-            <strong>
-              Galería de comprobantes
-            </strong>
-
-            <p>
-              Los comprobantes registrados aparecerán aquí.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div id="accountingSummary" class="panel hidden">
-
-          <div class="card-kicker">
-            INFORME CONTABLE
-          </div>
-
-          <h2>
-            Resultado de contabilización
-          </h2>
-
-          <div id="accountingDetails"></div>
-
-        </div>
-
-      </section>
-
-    </div>
-
-
-    <!-- =====================================
-         CONTABILIZACIÓN
-    ===================================== -->
+  <div class="content-grid">
 
     <section class="panel">
-
       <div class="panel-heading">
-
         <div>
-          <div class="card-kicker">
-            GESTIÓN FINANCIERA
-          </div>
-
-          <h2>Contabilización</h2>
+          <div class="card-kicker">NUEVO REGISTRO</div>
+          <h2>Registrar actividad</h2>
         </div>
-
-        <span class="admin-pill">
-          BER
-        </span>
-
       </div>
 
+      <form id="activityForm">
 
-      <p class="muted">
-        Consolida los viáticos, gastos y comprobantes
-        del empleado consultado.
-      </p>
-
-
-      <button
-        id="accountingBtn"
-        class="btn btn-primary btn-full"
-        type="button"
-      >
-        CONTABILIZAR MOVIMIENTOS →
-      </button>
-
-
-      <div id="accountingMessage" class="notice hidden"></div>
-
-    </section>
-
-
-    <!-- =====================================
-         HISTORIAL
-    ===================================== -->
-
-    <section class="panel movements-panel">
-
-      <div class="panel-heading">
-
-        <div>
-          <div class="card-kicker">
-            ACTIVIDAD
-          </div>
-
-          <h2>Historial de movimientos</h2>
+        <div id="targetEmployeeWrap" class="hidden">
+          <label for="targetEmployee">Empleado</label>
+          <input id="targetEmployee" type="email" placeholder="Correo del empleado">
         </div>
 
+        <label for="activityDate">Fecha de la actividad</label>
+        <input id="activityDate" type="date" required>
 
-        <button
-          id="refreshBtn"
-          class="icon-button"
-          type="button"
-          aria-label="Actualizar movimientos"
-        >
-          ↻
+        <label for="activityTitle">Nombre de la actividad</label>
+        <input id="activityTitle" type="text" maxlength="120"
+               placeholder="Ej. Instalación de equipos" required>
+
+        <label for="activityDescription">Descripción</label>
+        <textarea id="activityDescription" rows="4" maxlength="1500"
+          placeholder="Describe las labores realizadas..." required></textarea>
+
+        <label for="evidence">Evidencias (fotografías o PDF)</label>
+        <input id="evidence" type="file"
+               accept="image/jpeg,image/png,image/webp,application/pdf"
+               multiple>
+        <p class="file-hint">Puedes adjuntar hasta 5 archivos de máximo 10 MB cada uno.</p>
+
+        <button id="saveActivityBtn" class="btn btn-primary btn-full" type="submit">
+          GUARDAR ACTIVIDAD →
         </button>
-
-      </div>
-
-
-      <div id="movementsList" class="movement-list"></div>
-
+        <div id="formMessage" class="notice hidden"></div>
+      </form>
     </section>
 
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <div class="card-kicker">DOCUMENTACIÓN</div>
+          <h2>Mis evidencias</h2>
+        </div>
+      </div>
+      <p class="muted">Archivos asociados a tus actividades.</p>
+      <div id="receiptsGallery" class="movement-list">
+        <div class="empty-state">
+          <strong>Sin evidencias todavía</strong>
+          <p>Las evidencias aparecerán aquí.</p>
+        </div>
+      </div>
+    </section>
 
-    <!-- PIE DE PÁGINA -->
+  </div>
 
-    <footer class="app-footer">
-      BER INGENIERÍA S.A.S. · Gestión digital de viáticos
-    </footer>
-
+  <section class="panel movements-panel">
+    <div class="panel-heading">
+      <div>
+        <div class="card-kicker">HISTORIAL</div>
+        <h2>Actividades registradas</h2>
+      </div>
+      <button id="refreshBtn" class="icon-button" type="button">↻</button>
+    </div>
+    <div id="movementsList" class="movement-list"></div>
   </section>
 
+  <footer class="app-footer">
+    BER INGENIERÍA S.A.S. · Registro de actividades
+  </footer>
+
+</section>
 </main>
-
-
-<!-- NOTIFICACIONES -->
 
 <div id="globalToast" class="toast hidden"></div>
 
-
-<!-- =====================================
-     CONTROL DE PRESENTACIÓN
-===================================== -->
-
 <script>
-(() => {
-  const splash = document.getElementById("splash");
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    document.getElementById("splash")?.classList.add("splash-dismiss");
+    setTimeout(() => document.getElementById("splash")?.classList.add("hidden"), 520);
+  }, 650);
+});
 
-  window.setTimeout(() => {
-    if (splash) {
-      splash.classList.add("splash-dismiss");
-
-      window.setTimeout(() => {
-        splash.classList.add("hidden");
-      }, 350);
-    }
-  }, 700);
-})();
-</script>
-
-
-<!-- =====================================
-     SERVICE WORKER
-===================================== -->
-
-<script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-
     navigator.serviceWorker.register("./service-worker.js")
-      .then((registration) => {
-        console.log("BER PWA registrada:", registration.scope);
-      })
-      .catch((error) => {
-        console.error("Error registrando PWA:", error);
-      });
-
+      .catch(error => console.error("PWA:", error));
   });
 }
 </script>
 
-
-<!-- APLICACIÓN PRINCIPAL -->
-
 <script type="module" src="./app.js"></script>
-
 </body>
 </html>
