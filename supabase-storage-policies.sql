@@ -3,14 +3,14 @@
 -- No pegues claves secretas/service_role en el navegador.
 
 -- Usuarios normales pueden subir y consultar archivos solamente dentro de su carpeta UID.
-create policy "BER empleados suben su propio comprobante"
+create policy "BER ingenieros suben su propio comprobante"
 on storage.objects for insert to authenticated
 with check (
   bucket_id = 'comprobantes-ber'
   and (storage.foldername(name))[1] = (auth.jwt() ->> 'sub')
 );
 
-create policy "BER empleados leen su propio comprobante"
+create policy "BER ingenieros leen su propio comprobante"
 on storage.objects for select to authenticated
 using (
   bucket_id = 'comprobantes-ber'

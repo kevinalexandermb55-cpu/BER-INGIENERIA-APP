@@ -154,6 +154,8 @@ onAuthStateChanged(auth, async user => {
   }
   setConnection('Verificando acceso…');
   $('logoutBtn').classList.remove('hidden');
+  let loadingStage = 'profile';
+  let signedInAsAdmin = false;
   try {
     const profile = await ensureProfile(user);
     if (profile.activo === false) {
@@ -162,6 +164,7 @@ onAuthStateChanged(auth, async user => {
       return;
     }
     const admin = roleIsAdmin(profile);
+    signedInAsAdmin = admin;
     if ((selectedRole === 'admin') !== admin) {
       await signOut(auth);
       showLogin(admin ? 'Esta cuenta tiene acceso de administrador. Selecciona el panel Administrador e inténtalo de nuevo.' : 'Esta cuenta no tiene el rol de administrador. Selecciona el panel Ingeniero.');
@@ -181,17 +184,28 @@ onAuthStateChanged(auth, async user => {
     $('usersPanel').classList.toggle('hidden', !admin);
     $('targetEmployeeWrap').classList.toggle('hidden', !admin);
     showingAll = admin;
+    loadingStage = 'activities';
     await loadActivities();
     if (admin) {
+      loadingStage = 'users';
       await loadUsers();
+      loadingStage = 'accounting';
       await loadAccountingEntries();
       renderAccountingQueue();
     }
     setConnection('Conectado', true);
   } catch (error) {
     console.error('No se pudo preparar la sesión BER:', error);
+    const permissionMessages = {
+      profile:'Firebase aceptó tus credenciales, pero Firestore no permitió leer o crear tu perfil. Verifica la colección usuarios (minúscula), el UID del documento y las reglas.',
+      activities:signedInAsAdmin
+        ? 'Firestore bloqueó la carga de actividades del equipo. Verifica que el perfil tenga rol admin y activo true, y que config/berSecurity contenga exactamente los dos UID administradores.'
+        : 'Firestore bloqueó la lectura de tus actividades. Verifica que tu perfil esté activo en usuarios y que las reglas permitan consultar solo tu UID.',
+      users:'Firestore bloqueó la lista de usuarios. Verifica que tu UID esté autorizado en config/berSecurity y que las reglas estén publicadas.',
+      accounting:'Firestore bloqueó los comprobantes contables. Verifica la autorización de administrador y las reglas de la colección asientos.'
+    };
     const message = error.code === 'permission-denied'
-      ? 'Tu acceso se validó, pero Firestore no permitió leer el perfil. Revisa que las reglas de seguridad actualizadas estén publicadas.'
+      ? permissionMessages[loadingStage]
       : friendlyError(error);
     await signOut(auth).catch(() => {});
     showLogin(message);
@@ -229,11 +243,12 @@ function updateSummary() {
 }
 
 async function openEvidence(path, name) {
-  const newTab = window.open('about:blank', '_blank', 'noopener');
+  const newTab = window.open('about:blank', '_blank');
+  if (newTab) newTab.opener = null;
   try {
     const fileBlob = await getBlob(ref(storage, path));
     const objectUrl = URL.createObjectURL(fileBlob);
-    if (newTab) newTab.location.href = objectUrl;
+    if (newTab) newTab.location.replace(objectUrl);
     else {
       const link = document.createElement('a');
       link.href = objectUrl;
@@ -517,6 +532,9 @@ async function saveAccountingRecord(state) {
   const activityId = $('accountingActivityId').value;
   const totals = updateAccountingTotals();
   if (!isAdmin() || !activityId) return;
+  const existingEntry = editingAccountingId
+    ? accountingEntries.find(entry => entry.id === editingAccountingId)
+    : null;
   if (state === 'listo') {
     const required = ['accountingDate','accountingDocType','accountingDocName','accountingDocNumber','accountingBeneficiary','accountingThirdPartyId','accountingConcept'];
     if (required.some(id => !$(id).value.trim())) {
@@ -544,7 +562,7 @@ async function saveAccountingRecord(state) {
       debitoTotal:totals.debit,
       creditoTotal:totals.credit,
       estado:state,
-      creadoPor:currentUser.uid,
+      creadoPor:existingEntry?.creadoPor || currentUser.uid,
       actualizadoEn:serverTimestamp()
     };
     if (editingAccountingId) await updateDoc(doc(db, 'asientos', editingAccountingId), payload);
