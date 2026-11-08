@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["https://kevinalexandermb55-cpu.github.io"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]

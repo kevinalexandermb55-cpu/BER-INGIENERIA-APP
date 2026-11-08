@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function profilePath(uid) { return /databases/(default)/documents/usuarios/$(uid); }
+    function adminConfigPath() { return /databases/(default)/documents/config/berSecurity; }
+    function activeUser() {
+      return signedIn() && firestore.exists(profilePath(request.auth.uid))
+        && firestore.get(profilePath(request.auth.uid)).data.activo == true;
+    }
+    function isAdmin() {
+      return activeUser()
+        && firestore.get(profilePath(request.auth.uid)).data.rol == 'admin'
+        && firestore.exists(adminConfigPath())
+        && firestore.get(adminConfigPath()).data.adminUid1 is string
+        && firestore.get(adminConfigPath()).data.adminUid2 is string
+        && firestore.get(adminConfigPath()).data.adminUid1 != firestore.get(adminConfigPath()).data.adminUid2
+        && request.auth.uid in [firestore.get(adminConfigPath()).data.adminUid1, firestore.get(adminConfigPath()).data.adminUid2];
+    }
+    match /evidencias/{userId}/{fileName} {
+      allow read: if activeUser() && (request.auth.uid == userId || isAdmin());
+      allow create, update: if activeUser() && (request.auth.uid == userId || isAdmin())
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)|application/pdf');
+      allow delete: if activeUser() && (request.auth.uid == userId || isAdmin());
+    }
+  }
+}
