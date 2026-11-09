@@ -121,15 +121,18 @@ $('loginForm').addEventListener('submit', async event => {
 $('logoutBtn').addEventListener('click', () => signOut(auth));
 
 async function ensureProfile(user) {
-  const profileRef = doc(db, 'usuarios', user.uid);
-  const snapshot = await getDoc(profileRef);
-  if (!snapshot.exists()) {
-    // A user can provision only their own non-admin profile; Firestore Rules enforce this.
-    const profile = { uid:user.uid, email:user.email || '', nombre:user.displayName || (user.email || '').split('@')[0], rol:'ingeniero', activo:true, creadoEn:serverTimestamp() };
-    await setDoc(profileRef, profile);
-    return { ...profile, creadoEn:undefined };
-  }
-  return snapshot.data();
+  const profileRef = doc(db, 'Usuarios', user.uid);
+  const primarySnapshot = await getDoc(profileRef);
+  if (primarySnapshot.exists()) return primarySnapshot.data();
+
+  // Support profiles created by the earlier lowercase version.
+  const legacySnapshot = await getDoc(doc(db, 'usuarios', user.uid));
+  if (legacySnapshot.exists()) return legacySnapshot.data();
+
+  // A user can provision only their own non-admin profile; Firestore Rules enforce this.
+  const profile = { uid:user.uid, email:user.email || '', nombre:user.displayName || (user.email || '').split('@')[0], rol:'ingeniero', activo:true, creadoEn:serverTimestamp() };
+  await setDoc(profileRef, profile);
+  return { ...profile, creadoEn:undefined };
 }
 
 function showLogin(message = '') {
@@ -197,10 +200,10 @@ onAuthStateChanged(auth, async user => {
   } catch (error) {
     console.error('No se pudo preparar la sesión BER:', error);
     const permissionMessages = {
-      profile:'Firebase aceptó tus credenciales, pero Firestore no permitió leer o crear tu perfil. Verifica la colección usuarios (minúscula), el UID del documento y las reglas.',
+      profile:'Firebase aceptó tus credenciales, pero Firestore no permitió leer o crear tu perfil. Verifica la colección Usuarios/usuarios, el UID del documento y las reglas.',
       activities:signedInAsAdmin
         ? 'Firestore bloqueó la carga de actividades del equipo. Verifica que el perfil tenga rol admin y activo true, y que config/berSecurity contenga exactamente los dos UID administradores.'
-        : 'Firestore bloqueó la lectura de tus actividades. Verifica que tu perfil esté activo en usuarios y que las reglas permitan consultar solo tu UID.',
+        : 'Firestore bloqueó la lectura de tus actividades. Verifica que tu perfil esté activo y que las reglas permitan consultar solo tu UID.',
       users:'Firestore bloqueó la lista de usuarios. Verifica que tu UID esté autorizado en config/berSecurity y que las reglas estén publicadas.',
       accounting:'Firestore bloqueó los comprobantes contables. Verifica la autorización de administrador y las reglas de la colección asientos.'
     };
@@ -363,8 +366,14 @@ $('refreshBtn').addEventListener('click', async () => { try { await loadActiviti
 
 async function loadUsers() {
   if (!isAdmin()) return;
-  const snapshot = await getDocs(collection(db, 'usuarios'));
-  users = snapshot.docs.map(item => ({ uid:item.id, ...item.data() })).sort((a, b) => displayProfileName(a).localeCompare(displayProfileName(b), 'es'));
+  const [primary, legacy] = await Promise.all([
+    getDocs(collection(db, 'Usuarios')),
+    getDocs(collection(db, 'usuarios'))
+  ]);
+  const byUid = new Map();
+  legacy.docs.forEach(item => byUid.set(item.id, { uid:item.id, ...item.data(), _collection:'usuarios' }));
+  primary.docs.forEach(item => byUid.set(item.id, { uid:item.id, ...item.data(), _collection:'Usuarios' }));
+  users = [...byUid.values()].sort((a, b) => displayProfileName(a).localeCompare(displayProfileName(b), 'es'));
   renderUsers();
 }
 function renderUsers() {
@@ -378,7 +387,7 @@ function renderUsers() {
     const active = button.dataset.nextActive === 'true';
     if (!confirm(`${active ? 'Reactivar' : 'Pausar'} el acceso de ${displayProfileName(user, user.email)}?`)) return;
     button.disabled = true;
-    try { await updateDoc(doc(db, 'usuarios', user.uid), { activo:active, actualizadoEn:serverTimestamp() }); await loadUsers(); }
+    try { await updateDoc(doc(db, user._collection || 'Usuarios', user.uid), { activo:active, actualizadoEn:serverTimestamp() }); await loadUsers(); }
     catch (error) { alert(friendlyError(error)); button.disabled = false; }
   }));
 }

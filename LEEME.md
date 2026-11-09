@@ -6,7 +6,7 @@ Aplicación web progresiva (PWA) para registrar actividades y evidencias con dos
 
 - `index.html`, `styles.css`, `app.js`: aplicación y experiencia adaptable.
 - `firebase-config.js`: configuración web existente de BER; conserva el proyecto Firebase original.
-- `firestore.rules`, `storage.rules`: autorización por usuario y rol aplicada en el servidor.
+- `firestore.rules`, `storage.rules`: autorización por usuario y rol aplicada en el servidor. Admiten la colección histórica `Usuarios` y perfiles antiguos en `usuarios`.
 - `manifest.json`, `service-worker.js`, `icons/`, `assets/`: instalación PWA, caché y marca.
 - `cors.json`: CORS del bucket para descargar archivos con autorización de Firebase.
 - `firebase.json`: rutas de reglas para publicarlas con Firebase CLI.
@@ -33,7 +33,7 @@ Estas acciones requieren acceso al proyecto `b-e-r-ingenieria` y no se realizan 
 2. En **Authentication → Settings → Authorized domains**, confirma o agrega `kevinalexandermb55-cpu.github.io`.
 3. En **Firestore Database → Rules**, publica `firestore.rules`; en **Storage → Rules**, publica `storage.rules`.
 4. Confirma que el bucket indicado en `firebase-config.js` exista. Si no está creado, activa Cloud Storage en el proyecto. Esto puede requerir plan de facturación/configuración de Google Cloud.
-5. **Autoriza exactamente a Kevin y a su tío como administradores:** copia sus dos UID desde Authentication. En Firestore Console crea `config/berSecurity` con `adminUid1` y `adminUid2` (ambos strings distintos y solo esos dos UID). Después confirma que existan `usuarios/{UID}` para ambos con `uid`, `email`, `nombre`, `rol: "admin"` y `activo: true`. El resto de cuentas no tendrá acceso admin aunque un perfil antiguo diga `rol: "admin"`, porque las reglas exigen estar en la lista de dos UID. La app no puede conceder ni cambiar roles; solo el propietario del proyecto puede editar esta lista desde Firebase Console.
+5. **Autoriza exactamente a Kevin y a su tío como administradores:** copia sus dos UID desde Authentication. En Firestore Console crea `config/berSecurity` con `adminUid1` y `adminUid2` (ambos strings distintos y solo esos dos UID). Confirma que sus perfiles estén en `Usuarios/{UID}` (U mayúscula), con `uid`, `email`, `nombre`, `rol: "admin"` y `activo: true`. La app prioriza `Usuarios` y lee `usuarios` como compatibilidad; si hay perfiles duplicados, usa el registro de `Usuarios`. Storage valida los perfiles administradores en `Usuarios`. El resto de cuentas no tendrá acceso admin aunque un perfil diga `rol: "admin"`, porque las reglas exigen estar en la lista de dos UID. La app no puede conceder ni cambiar roles; solo el propietario del proyecto puede editar esta lista desde Firebase Console.
 6. Para previsualizar evidencias desde el navegador, aplica `cors.json` al bucket usando Google Cloud Shell, con sesión iniciada en el proyecto correcto: `gcloud config set project b-e-r-ingenieria` y `gsutil cors set cors.json gs://b-e-r-ingenieria.firebasestorage.app`. CORS limita la lectura web al dominio publicado; las reglas de Storage siguen controlando cada archivo. Firebase puede pedir habilitar la conexión de reglas de Storage con Firestore.
 
 No compartas contraseñas, claves privadas ni archivos de cuenta de servicio. La configuración web Firebase que está en `firebase-config.js` es la que venía en el ZIP; no se incluye ninguna clave privada nueva. La clave web de Firebase no sustituye las reglas de seguridad.

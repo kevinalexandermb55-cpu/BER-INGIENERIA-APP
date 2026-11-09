@@ -2,9 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function hasProfile(uid) { return exists(/databases/$(database)/documents/usuarios/$(uid)); }
-    function profile(uid) { return get(/databases/$(database)/documents/usuarios/$(uid)).data; }
-    function activeUser() { return signedIn() && hasProfile(request.auth.uid) && profile(request.auth.uid).activo == true; }
+
+    function primaryProfilePath(uid) {
+      return /databases/$(database)/documents/Usuarios/$(uid);
+    }
+    function legacyProfilePath(uid) {
+      return /databases/$(database)/documents/usuarios/$(uid);
+    }
+    function hasProfile(uid) {
+      return exists(primaryProfilePath(uid)) || exists(legacyProfilePath(uid));
+    }
+    // The historical uppercase collection is canonical; lowercase is supported for existing records.
+    function profile(uid) {
+      return exists(primaryProfilePath(uid))
+        ? get(primaryProfilePath(uid)).data
+        : get(legacyProfilePath(uid)).data;
+    }
+    function activeUser() {
+      return signedIn() && hasProfile(request.auth.uid)
+        && profile(request.auth.uid).activo == true;
+    }
     function adminConfigured() {
       let path = /databases/$(database)/documents/config/berSecurity;
       return exists(path)
@@ -17,23 +34,16 @@ service cloud.firestore {
       return activeUser() && profile(request.auth.uid).rol == 'admin'
         && adminConfigured();
     }
-
-    // This document is provisioned only by the Firebase project owner in Console.
-    match /config/{configId} {
-      allow read, write: if false;
-    }
-
-    match /usuarios/{userId} {
-      // Anyone with an authenticated account may create only their own engineer profile.
-      allow create: if signedIn() && request.auth.uid == userId
+    function canCreateProfile(userId) {
+      return signedIn() && request.auth.uid == userId
         && request.resource.data.keys().hasOnly(['uid','email','nombre','rol','activo','creadoEn'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.rol == 'ingeniero'
         && request.resource.data.activo == true;
-      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isAdmin();
-      allow update: if (isAdmin()
+    }
+    function canUpdateProfile(userId) {
+      return (isAdmin()
           && request.resource.data.uid == resource.data.uid
           && request.resource.data.email == resource.data.email
           && request.resource.data.rol == resource.data.rol
@@ -44,6 +54,25 @@ service cloud.firestore {
           && request.resource.data.uid == resource.data.uid
           && request.resource.data.rol == resource.data.rol
           && request.resource.data.activo == resource.data.activo);
+    }
+
+    match /config/{configId} {
+      allow read, write: if false;
+    }
+
+    // Keep both spellings readable so existing records are not lost; the app writes new profiles to `Usuarios`.
+    match /Usuarios/{userId} {
+      allow create: if canCreateProfile(userId);
+      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow update: if canUpdateProfile(userId);
+      allow delete: if false;
+    }
+    match /usuarios/{userId} {
+      allow create: if canCreateProfile(userId);
+      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow update: if canUpdateProfile(userId);
       allow delete: if false;
     }
 
@@ -57,8 +86,9 @@ service cloud.firestore {
         && request.resource.data.descripcion is string
         && request.resource.data.evidencias is list
         && request.resource.data.creadoPor == request.auth.uid
-        && ((isAdmin() && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))) || request.resource.data.uid == request.auth.uid);
-      allow get, list: if activeUser() && (resource.data.uid == request.auth.uid || isAdmin());
+        && ((isAdmin() && hasProfile(request.resource.data.uid)) || request.resource.data.uid == request.auth.uid);
+      allow get, list: if activeUser()
+        && (resource.data.uid == request.auth.uid || isAdmin());
       allow update, delete: if isAdmin();
     }
 

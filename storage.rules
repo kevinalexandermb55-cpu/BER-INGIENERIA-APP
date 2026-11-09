@@ -2,27 +2,42 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() { return request.auth != null; }
-    function profilePath(uid) { return /databases/(default)/documents/usuarios/$(uid); }
-    function adminConfigPath() { return /databases/(default)/documents/config/berSecurity; }
+    function primaryProfilePath(uid) { return /databases/(default)/documents/Usuarios/$(uid); }
+    function legacyProfilePath(uid) { return /databases/(default)/documents/usuarios/$(uid); }
     function activeUser() {
-      return signedIn() && firestore.exists(profilePath(request.auth.uid))
-        && firestore.get(profilePath(request.auth.uid)).data.activo == true;
+      return signedIn()
+        && (firestore.exists(primaryProfilePath(request.auth.uid))
+          || firestore.exists(legacyProfilePath(request.auth.uid)))
+        && (firestore.exists(primaryProfilePath(request.auth.uid))
+          ? firestore.get(primaryProfilePath(request.auth.uid)).data.activo == true
+          : firestore.get(legacyProfilePath(request.auth.uid)).data.activo == true);
     }
+    // Admin profiles use the historical uppercase collection so this check stays within Storage's Firestore lookup limit.
     function isAdmin() {
-      return activeUser()
-        && firestore.get(profilePath(request.auth.uid)).data.rol == 'admin'
-        && firestore.exists(adminConfigPath())
-        && firestore.get(adminConfigPath()).data.adminUid1 is string
-        && firestore.get(adminConfigPath()).data.adminUid2 is string
-        && firestore.get(adminConfigPath()).data.adminUid1 != firestore.get(adminConfigPath()).data.adminUid2
-        && request.auth.uid in [firestore.get(adminConfigPath()).data.adminUid1, firestore.get(adminConfigPath()).data.adminUid2];
+      let profile = primaryProfilePath(request.auth.uid);
+      let adminPath = /databases/(default)/documents/config/berSecurity;
+      return signedIn()
+        && firestore.exists(profile)
+        && firestore.get(profile).data.activo == true
+        && firestore.get(profile).data.rol == 'admin'
+        && firestore.exists(adminPath)
+        && firestore.get(adminPath).data.adminUid1 is string
+        && firestore.get(adminPath).data.adminUid2 is string
+        && firestore.get(adminPath).data.adminUid1 != firestore.get(adminPath).data.adminUid2
+        && request.auth.uid in [firestore.get(adminPath).data.adminUid1, firestore.get(adminPath).data.adminUid2];
     }
     match /evidencias/{userId}/{fileName} {
-      allow read: if activeUser() && (request.auth.uid == userId || isAdmin());
-      allow create, update: if activeUser() && (request.auth.uid == userId || isAdmin())
+      allow read: if signedIn()
+        && ((request.auth.uid == userId && activeUser())
+          || (request.auth.uid != userId && isAdmin()));
+      allow create, update: if signedIn()
+        && ((request.auth.uid == userId && activeUser())
+          || (request.auth.uid != userId && isAdmin()))
         && request.resource.size <= 10 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)|application/pdf');
-      allow delete: if activeUser() && (request.auth.uid == userId || isAdmin());
+      allow delete: if signedIn()
+        && ((request.auth.uid == userId && activeUser())
+          || (request.auth.uid != userId && isAdmin()));
     }
   }
 }
