@@ -1,146 +1,224 @@
-<!doctype html>
+
+
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#081a32">
-  <meta name="description" content="Gestión de actividades, en un solo lugar. Registro corporativo de BER Ingeniería S.A.S.">
+  <meta name="theme-color" content="#07172d">
+  <meta name="description" content="Registro de actividades BER Ingeniería S.A.S.">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./styles.css">
-  <title>Gestión de actividades, en un solo lugar. | BER Ingeniería</title>
+  <title>BER Ingeniería | Registro de actividades</title>
 </head>
 <body>
-  <div class="splash" id="splash" aria-label="BER Ingeniería">
-    <div class="splash-inner">
-      <div class="splash-letters" aria-hidden="true"><i>B</i><i>E</i><i>R</i></div>
-      <div class="splash-rule"></div>
-      <img src="./assets/ber-logo.png" alt="Logo BER Ingeniería">
-      <span>INGENIERÍA <b>S.A.S.</b></span>
-      <small>REGISTRO DE ACTIVIDADES</small>
+
+<div id="splash" class="splash">
+  <div class="splash-content">
+    <div class="ber-mark">
+      <span>B</span><span>E</span><span>R</span>
+    </div>
+    <div class="splash-line"></div>
+    <img src="./img/logo-ber-original.png"
+         alt="Logo original BER Ingeniería"
+         style="width:min(230px,65vw);height:auto;object-fit:contain;margin:10px auto;">
+    <div class="splash-title">INGENIERÍA <b>S.A.S.</b></div>
+    <div class="splash-subtitle">REGISTRO DE ACTIVIDADES</div>
+    <div class="loading-track"><i></i></div>
+  </div>
+</div>
+
+<main class="shell">
+
+<header class="topbar">
+  <a class="brand" href="#">
+    <img src="./img/logo-ber-original.png"
+         alt="BER Ingeniería"
+         style="width:145px;max-height:55px;object-fit:contain;">
+  </a>
+  <div class="top-actions">
+    <span id="connectionStatus" class="status-dot">Conectando</span>
+    <button id="logoutBtn" class="btn btn-ghost hidden" type="button">Salir</button>
+  </div>
+</header>
+
+<section id="authPanel" class="auth-layout">
+  <div class="hero-copy">
+    <div class="eyebrow">PLATAFORMA CORPORATIVA</div>
+    <h1>Gestión de actividades,<br><em>en un solo lugar.</em></h1>
+    <p>Registra tus actividades, adjunta evidencias y consulta tu historial de trabajo.</p>
+  </div>
+
+  <div class="auth-card">
+    <div class="card-kicker">ACCESO SEGURO</div>
+    <h2>Bienvenido</h2>
+    <p class="muted">Ingresa con tu cuenta corporativa.</p>
+
+    <form id="loginForm">
+      <label for="email">Correo electrónico</label>
+      <input id="email" type="email" autocomplete="username" required>
+
+      <label for="password">Contraseña</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+
+      <button class="btn btn-primary btn-full" type="submit">Ingresar →</button>
+    </form>
+
+    <button id="showSignup" class="text-button" type="button">
+      ¿Primera vez? Crear cuenta
+    </button>
+    <div id="authMessage" class="notice hidden"></div>
+  </div>
+</section>
+
+<section id="appPanel" class="hidden">
+
+  <div class="welcome-row">
+    <div>
+      <div class="eyebrow">PANEL DE CONTROL</div>
+      <h1 id="welcomeTitle">Mis actividades</h1>
+      <p id="welcomeSubtitle" class="muted">Gestiona tus registros.</p>
+    </div>
+    <div class="profile-chip">
+      <span class="avatar" id="avatar">B</span>
+      <div>
+        <strong id="signedUser">Usuario</strong>
+        <small id="roleLabel">Empleado</small>
+      </div>
     </div>
   </div>
-  <script>
-    (() => {
-      const started = performance.now();
-      setTimeout(() => document.getElementById('splash')?.classList.add('finished'), Math.max(0, 2000 - (performance.now() - started)));
-    })();
-  </script>
 
-  <div class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="BER Ingeniería, inicio"><img src="./assets/ber-logo.png" alt="BER Ingeniería"></a>
-      <div class="topbar-right"><span class="connection" id="connectionStatus"><i></i><span>Conectando</span></span><button class="button button-outline hidden" id="logoutBtn" type="button">Cerrar sesión</button></div>
-    </header>
-
-    <main>
-      <section class="auth-view" id="authPanel">
-        <div class="hero">
-          <div class="eyebrow"><span></span> PLATAFORMA CORPORATIVA</div>
-          <h1>Gestión de actividades,<br><em>en un solo lugar.</em></h1>
-          <p>Una manera clara y segura de registrar actividades, compartir evidencias y dar seguimiento al trabajo de cada equipo.</p>
-          <div class="hero-foot"><span class="hero-line"></span><span>BER INGENIERÍA S.A.S.</span><span class="hero-foot-dot">•</span><span>OPERACIÓN Y PROYECTOS</span></div>
-        </div>
-        <div class="auth-card">
-          <div class="card-topline"><span>ACCESO SEGURO</span><span class="lock-mark" aria-hidden="true">◆</span></div>
-          <h2 id="authTitle">Bienvenido</h2>
-          <p class="muted" id="authSubtitle">Elige tu espacio e ingresa con tu cuenta corporativa.</p>
-          <div class="role-picker" role="group" aria-label="Selecciona tu espacio">
-            <button class="role-option selected" type="button" data-role="ingeniero" aria-pressed="true"><span class="role-icon">01</span><span><b>Ingeniero</b><small>Actividades e historial</small></span><span class="role-check">✓</span></button>
-            <button class="role-option" type="button" data-role="admin" aria-pressed="false"><span class="role-icon">02</span><span><b>Administrador</b><small>Resumen y gestión</small></span><span class="role-check">✓</span></button>
-          </div>
-          <form id="loginForm" novalidate>
-            <label for="email">Correo electrónico</label>
-            <input id="email" name="email" type="email" autocomplete="username" placeholder="nombre@empresa.com" required>
-            <label for="password">Contraseña</label>
-            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required>
-            <button class="button button-primary button-full" id="submitAuth" type="submit"><span id="submitAuthText">Ingresar</span><span aria-hidden="true">↗</span></button>
-          </form>
-          <button class="link-button" id="toggleSignup" type="button">¿Nuevo en BER? <b>Crear cuenta de ingeniero</b></button>
-          <div class="notice hidden" id="authMessage" role="status" aria-live="polite"></div>
-          <p class="security-note"><span>●</span> Acceso protegido por Firebase</p>
-        </div>
-      </section>
-
-      <section class="workspace hidden" id="appPanel">
-        <div class="workspace-heading">
-          <div><div class="eyebrow"><span></span><span id="panelEyebrow">ESPACIO DE TRABAJO</span></div><h1 id="welcomeTitle">Mis actividades</h1><p id="welcomeSubtitle" class="muted">Registra y consulta tus actividades.</p></div>
-          <div class="user-chip"><span class="avatar" id="avatar">B</span><span><b id="signedUser">Usuario</b><small id="roleLabel">Ingeniero</small></span></div>
-        </div>
-        <div class="stats-grid">
-          <article class="stat-card"><span class="stat-icon">↗</span><span class="stat-label">ACTIVIDADES REGISTRADAS</span><b id="totalActivities">0</b><small>En el periodo consultado</small></article>
-          <article class="stat-card"><span class="stat-icon">◷</span><span class="stat-label">ACTIVIDADES DE HOY</span><b id="todayActivities">0</b><small>Actualizado al momento</small></article>
-          <article class="stat-card stat-highlight"><span class="stat-icon">▧</span><span class="stat-label">EVIDENCIAS ADJUNTAS</span><b id="totalEvidence">0</b><small>Fotografías y documentos</small></article>
-        </div>
-
-        <section class="admin-tools hidden" id="adminTools">
-          <div class="section-heading"><div><span class="section-kicker">VISTA GENERAL</span><h2>Actividad del equipo</h2></div><span class="admin-badge">ADMINISTRADOR</span></div>
-          <div class="filters"><label>Ingeniero<input id="employeeFilter" type="search" placeholder="Filtrar por nombre o correo"></label><label>Desde<input id="dateFrom" type="date"></label><label>Hasta<input id="dateTo" type="date"></label><button id="filterBtn" class="button button-dark" type="button">Aplicar filtros</button><button id="clearFilterBtn" class="button button-quiet" type="button">Limpiar</button><button id="exportBtn" class="button button-quiet" type="button">Exportar CSV ↓</button></div>
-        </section>
-
-        <section class="surface accounting-panel hidden" id="accountingPanel">
-          <div class="section-heading"><div><span class="section-kicker">CONTROL CONTABLE INTERNO</span><h2>Contabilidad de actividades</h2></div><span class="admin-badge">SOLO ADMINISTRADORES</span></div>
-          <p class="muted">Registra comprobantes dentro de BER, consulta los movimientos por cuenta PUC y revisa que cada comprobante cuadre. Usa la cuenta indicada por el contador.</p>
-          <div class="accounting-summary-grid">
-            <article class="stat-card"><span class="stat-label">COMPROBANTES REGISTRADOS</span><b id="accountingRegisteredCount">0</b><small>En el periodo seleccionado</small></article>
-            <article class="stat-card"><span class="stat-label">BORRADORES</span><b id="accountingDraftCount">0</b><small>Pendientes de completar</small></article>
-            <article class="stat-card"><span class="stat-label">TOTAL DÉBITO</span><b id="accountingPeriodDebit">$0</b><small>Comprobantes registrados</small></article>
-            <article class="stat-card stat-highlight"><span class="stat-label">TOTAL CRÉDITO</span><b id="accountingPeriodCredit">$0</b><small>Debe coincidir con el débito</small></article>
-          </div>
-          <div class="accounting-ledger"><div class="section-heading"><div><span class="section-kicker">RESUMEN POR CUENTA</span><h3>Movimientos PUC</h3></div><span class="muted">Usa los filtros Desde/Hasta del panel superior</span></div><div id="accountingAccountSummary" class="accounting-account-summary"></div></div>
-          <div id="accountingQueue" class="accounting-queue"></div>
-          <div class="accounting-footnote">Este es un control contable interno de BER. El sistema calcula movimientos y valida el cuadre matemático; el contador debe confirmar la cuenta PUC y el tratamiento contable según los soportes y las obligaciones de la empresa.</div>
-        </section>
-
-        <div class="main-grid">
-          <section class="surface form-surface" id="activityPanel">
-            <div class="section-heading"><div><span class="section-kicker">NUEVO REGISTRO</span><h2>Registrar actividad</h2></div><span class="step-number">01</span></div>
-            <form id="activityForm">
-              <div class="field-row"><label>Fecha<input id="activityDate" type="date" required></label><label id="targetEmployeeWrap" class="hidden">Registrar para<input id="targetEmployee" type="email" placeholder="Correo del ingeniero"></label></div>
-              <label for="activityTitle">Nombre de la actividad</label><input id="activityTitle" type="text" maxlength="120" placeholder="Ej. Inspección de obra" required>
-              <label for="activityLocation">Proyecto o ubicación <span class="optional">OPCIONAL</span></label><input id="activityLocation" type="text" maxlength="160" placeholder="Ej. Proyecto Norte · Medellín">
-              <label for="activityDescription">Descripción</label><textarea id="activityDescription" rows="4" maxlength="1800" placeholder="Resume el trabajo realizado, avances o novedades..." required></textarea>
-              <label for="evidence">Evidencias <span class="optional">OPCIONAL</span></label><input id="evidence" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple><p class="field-help">Hasta 5 fotografías o PDF; máximo 10 MB por archivo.</p>
-              <button class="button button-primary button-full" id="saveActivityBtn" type="submit">Guardar actividad <span>↗</span></button>
-              <div class="notice hidden" id="formMessage" role="status" aria-live="polite"></div>
-            </form>
-          </section>
-          <section class="surface evidence-surface"><div class="section-heading"><div><span class="section-kicker">ARCHIVOS</span><h2>Evidencias recientes</h2></div><span class="step-number">02</span></div><p class="muted">Documentos vinculados a las actividades registradas.</p><div class="evidence-list" id="receiptsGallery"></div></section>
-        </div>
-        <section class="surface history-surface"><div class="section-heading"><div><span class="section-kicker">SEGUIMIENTO</span><h2>Historial de actividades</h2></div><button class="button button-quiet refresh-button" id="refreshBtn" type="button">↻ <span>Actualizar</span></button></div><div class="activity-list" id="movementsList"></div></section>
-        <section class="surface users-surface hidden" id="usersPanel"><div class="section-heading"><div><span class="section-kicker">ACCESOS</span><h2>Gestión de ingenieros</h2></div><button id="refreshUsersBtn" class="button button-quiet" type="button">Actualizar</button></div><p class="muted">Activa o pausa el acceso a la aplicación. Los cambios de rol requieren autorización de administrador.</p><div id="usersList" class="users-list"></div></section>
-        <footer class="app-footer"><span>BER INGENIERÍA S.A.S.</span><span>Gestión de actividades, en un solo lugar.</span><span>REGISTRO DE ACTIVIDADES <i>•</i> <span id="footerYear"></span></span></footer>
-      </section>
-    </main>
+  <div class="stats-grid">
+    <article class="stat-card">
+      <div class="stat-label">ACTIVIDADES REGISTRADAS</div>
+      <div class="stat-value" id="totalActivities">0</div>
+    </article>
+    <article class="stat-card">
+      <div class="stat-label">ACTIVIDADES DE HOY</div>
+      <div class="stat-value" id="todayActivities">0</div>
+    </article>
+    <article class="stat-card balance-card">
+      <div class="stat-label">EVIDENCIAS ADJUNTAS</div>
+      <div class="stat-value" id="totalEvidence">0</div>
+    </article>
   </div>
-  <div class="toast hidden" id="globalToast" role="status" aria-live="polite"></div>
-  <div class="modal-backdrop hidden" id="accountingModal" role="dialog" aria-modal="true" aria-labelledby="accountingModalTitle">
-    <section class="accounting-modal">
-      <div class="section-heading"><div><span class="section-kicker">REGISTRO CONTABLE</span><h2 id="accountingModalTitle">Preparar comprobante</h2></div><button class="modal-close" id="closeAccountingModal" type="button" aria-label="Cerrar">×</button></div>
-      <p id="accountingActivitySummary" class="muted accounting-summary"></p>
-      <form id="accountingForm">
-        <input type="hidden" id="accountingActivityId">
-        <div class="accounting-fields">
-          <label>Fecha<input id="accountingDate" type="date" required></label>
-          <label>Tipo de documento<input id="accountingDocType" type="text" maxlength="30" placeholder="Según soporte" required></label>
-          <label>Nombre del documento<input id="accountingDocName" type="text" maxlength="100" placeholder="Factura, comprobante, recibo..." required></label>
-          <label>Número del documento<input id="accountingDocNumber" type="text" maxlength="80" required></label>
-          <label>Beneficiario / tercero<input id="accountingBeneficiary" type="text" maxlength="160" required></label>
-          <label>NIT o identificación<input id="accountingThirdPartyId" type="text" maxlength="40" required></label>
-          <label class="accounting-concept">Concepto contable<input id="accountingConcept" type="text" maxlength="240" required></label>
+
+  <section id="adminTools" class="panel hidden">
+    <div class="panel-heading">
+      <div>
+        <div class="card-kicker">ADMINISTRACIÓN</div>
+        <h2>Consulta de empleados</h2>
+      </div>
+      <span class="admin-pill">ADMIN</span>
+    </div>
+
+    <label for="employeeFilter">Correo del empleado</label>
+    <input id="employeeFilter" type="email" placeholder="empleado@empresa.com">
+
+    <div class="admin-grid">
+      <button id="filterEmployeeBtn" class="btn btn-secondary" type="button">Consultar</button>
+      <button id="allMovementsBtn" class="btn btn-ghost" type="button">Ver todos</button>
+      <button id="exportBtn" class="btn btn-ghost" type="button">Exportar CSV</button>
+    </div>
+  </section>
+
+  <div class="content-grid">
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <div class="card-kicker">NUEVO REGISTRO</div>
+          <h2>Registrar actividad</h2>
         </div>
-        <div class="section-heading accounting-lines-heading"><div><span class="section-kicker">PARTIDA DOBLE</span><h3>Líneas del comprobante</h3></div><button id="addAccountingLine" class="button button-quiet" type="button">+ Añadir línea</button></div>
-        <p class="muted accounting-puc-note">Usa la cuenta PUC indicada por el contador. La app no asigna cuentas automáticamente.</p>
-        <div class="accounting-line-head"><span>Cuenta PUC</span><span>Nombre de cuenta</span><span>Débito</span><span>Crédito</span><span></span></div>
-        <div id="accountingLines" class="accounting-lines"></div>
-        <div class="accounting-totals"><span>Débito <b id="accountingDebitTotal">0</b></span><span>Crédito <b id="accountingCreditTotal">0</b></span><strong id="accountingBalanceStatus">Pendiente de completar</strong></div>
-        <div class="notice hidden" id="accountingMessage" role="status" aria-live="polite"></div>
-        <div class="accounting-actions"><button class="button button-quiet" id="saveAccountingDraft" type="button">Guardar borrador</button><button class="button button-primary" id="prepareAccounting" type="submit">Registrar comprobante</button></div>
+      </div>
+
+      <form id="activityForm">
+
+        <div id="targetEmployeeWrap" class="hidden">
+          <label for="targetEmployee">Empleado</label>
+          <input id="targetEmployee" type="email" placeholder="Correo del empleado">
+        </div>
+
+        <label for="activityDate">Fecha de la actividad</label>
+        <input id="activityDate" type="date" required>
+
+        <label for="activityTitle">Nombre de la actividad</label>
+        <input id="activityTitle" type="text" maxlength="120"
+               placeholder="Ej. Instalación de equipos" required>
+
+        <label for="activityDescription">Descripción</label>
+        <textarea id="activityDescription" rows="4" maxlength="1500"
+          placeholder="Describe las labores realizadas..." required></textarea>
+
+        <label for="evidence">Evidencias (fotografías o PDF)</label>
+        <input id="evidence" type="file"
+               accept="image/jpeg,image/png,image/webp,application/pdf"
+               multiple>
+        <p class="file-hint">Puedes adjuntar hasta 5 archivos de máximo 10 MB cada uno.</p>
+
+        <button id="saveActivityBtn" class="btn btn-primary btn-full" type="submit">
+          GUARDAR ACTIVIDAD →
+        </button>
+        <div id="formMessage" class="notice hidden"></div>
       </form>
     </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <div class="card-kicker">DOCUMENTACIÓN</div>
+          <h2>Mis evidencias</h2>
+        </div>
+      </div>
+      <p class="muted">Archivos asociados a tus actividades.</p>
+      <div id="receiptsGallery" class="movement-list">
+        <div class="empty-state">
+          <strong>Sin evidencias todavía</strong>
+          <p>Las evidencias aparecerán aquí.</p>
+        </div>
+      </div>
+    </section>
+
   </div>
-  <script type="module" src="./app.js"></script>
-  <script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));</script>
+
+  <section class="panel movements-panel">
+    <div class="panel-heading">
+      <div>
+        <div class="card-kicker">HISTORIAL</div>
+        <h2>Actividades registradas</h2>
+      </div>
+      <button id="refreshBtn" class="icon-button" type="button">↻</button>
+    </div>
+    <div id="movementsList" class="movement-list"></div>
+  </section>
+
+  <footer class="app-footer">
+    BER INGENIERÍA S.A.S. · Registro de actividades
+  </footer>
+
+</section>
+</main>
+
+<div id="globalToast" class="toast hidden"></div>
+
+<script>
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    document.getElementById("splash")?.classList.add("splash-dismiss");
+    setTimeout(() => document.getElementById("splash")?.classList.add("hidden"), 520);
+  }, 650);
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch(error => console.error("PWA:", error));
+  });
+}
+</script>
+
+<script type="module" src="./app.js"></script>
 </body>
 </html>

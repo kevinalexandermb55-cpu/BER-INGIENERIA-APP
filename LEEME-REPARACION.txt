@@ -1,0 +1,29 @@
+BER INGENIERÍA — PAQUETE DE REPARACIÓN DE ACCESO
+================================================
+
+Cambios incluidos:
+1. Los dos UID propietarios se reconocen como administradores.
+2. Se corrige la creación/actualización del perfil en usuarios/{UID}.
+3. Se agregan reglas de Firestore para la colección "actividades", que es
+   la colección consultada por app.js. Antes las reglas solo contemplaban
+   "movimientos", lo que provocaba PERMISSION_DENIED al cargar el panel.
+4. Se conserva la colección "movimientos" para compatibilidad.
+5. Se incrementa la versión del caché PWA para forzar actualización.
+
+IMPORTANTE — PUBLICACIÓN:
+A. Publica el contenido de firestore.rules en Firebase Console:
+   Firestore Database > Rules > pegar > Publish.
+B. Sube los archivos de esta carpeta al repositorio GitHub Pages,
+   conservando la estructura y reemplazando los existentes.
+C. En Android, cierra la PWA completamente y vuelve a abrirla. Si sigue
+   usando el caché antiguo, elimina la instalación anterior y abre la URL
+   en Chrome para instalar la versión actualizada.
+D. No borres usuarios, actividades ni archivos de Supabase.
+
+Seguridad:
+- Solo los dos UID especificados en app.js y firestore.rules son
+  administradores privilegiados.
+- No se concede administración por correo ni por un selector de pantalla.
+- Los empleados solo pueden consultar/crear sus propias actividades.
+
+El paquete conserva el logo y recursos originales de BER.

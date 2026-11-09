@@ -1,43 +1,41 @@
-# BER Ingeniería — Control de viáticos
+# BER Ingeniería S.A.S. · Registro de Actividades
 
-Proyecto web adaptable a celular y computadora, pensado para publicarse en GitHub Pages. Incluye splash animado de marca B‑E‑R, inicio de sesión, registro de gastos, asignación de viáticos por administrador, resumen, historial y exportación CSV.
+Aplicación PWA para que cada ingeniero registre actividades, consulte su historial y adjunte evidencias. El administrador puede consultar los registros del equipo y exportarlos a CSV. Se conserva el logo original y la identidad azul/dorada de BER.
 
-## Archivos
-- `index.html`: pantalla inicial, acceso y estructura de la app.
-- `styles.css`: diseño corporativo azul oscuro/dorado y animación de letras.
-- `app.js`: autenticación, perfiles, movimientos, historial y comprobantes.
-- `firebase-config.js`: configuración web de Firebase del proyecto BER.
-- `supabase-config.js`: URL y clave publishable de Supabase.
-- `firestore.rules`: reglas iniciales para proteger perfiles y movimientos.
-- `supabase-storage-policies.sql`: políticas base para el bucket de comprobantes.
-- `manifest.json`, `sw.js`, `assets/icon.svg`: instalación PWA, caché e icono.
+## Archivos principales
+- `index.html`, `styles.css`: interfaz y diseño adaptable.
+- `app.js`: acceso Firebase, perfiles, actividades, consulta, exportación y carga/lectura de evidencias.
+- `firebase-config.js`: configuración web del proyecto Firebase BER.
+- `supabase-config.js`: URL, clave publishable y bucket privado de Supabase.
+- `firestore.rules`: reglas de Firestore para `usuarios` y `actividades`.
+- `supabase-storage-policies.sql`: políticas base del bucket privado.
+- `manifest.json`, `service-worker.js`, `icons/`: instalación PWA e iconos regenerados desde el logo original.
+- `img/logo-ber-original.png`: logo original de BER, sin rediseño.
 
-## Publicar en GitHub Pages
-1. Descarga y descomprime el ZIP.
-2. Guarda una copia del repositorio actual antes de sobrescribir archivos.
-3. Copia el contenido de esta carpeta en la raíz del repositorio de la app, manteniendo `assets/`.
-4. Sube y confirma los cambios en GitHub. En Settings → Pages, deja activa la fuente que ya utilizas.
-5. Abre la URL de Pages en Chrome del celular. Usa una ventana de incógnito si ves una versión anterior; se puede instalar desde el menú de Chrome cuando el sitio esté servido por HTTPS.
+## Firebase
+1. En Firebase Authentication, habilita Email/Password.
+2. En Authentication → Settings → Authorized domains, agrega `kevinalexandermb55-cpu.github.io`.
+3. En Firestore, conserva una copia de las reglas actuales y revisa/publica `firestore.rules`.
+4. Crea las cuentas de los ingenieros desde la app. El perfil se crea en `usuarios/{UID}` con rol `empleado`.
+5. Para autorizar al administrador, edita el documento `usuarios/{UID_ADMIN}` y establece `rol: "admin"`, `activo: true`, `uid`, `email` y `nombre`. Nunca permitas que un usuario se asigne a sí mismo el rol admin.
 
-## Configurar Firebase
-1. En Authentication → Sign-in method, habilita Email/Password.
-2. En Authentication → Settings → Authorized domains, agrega el dominio de GitHub Pages que utiliza la app.
-3. En Firestore → Rules, revisa y publica `firestore.rules`. Hazlo primero en una copia de pruebas si ya tienes reglas en uso.
-4. Crea una cuenta desde la app. Se crea como `empleado`.
-5. Para dar rol de administrador: abre Firebase Authentication, copia el UID de esa cuenta; en Firestore abre `usuarios` y crea/edita el documento cuyo ID sea exactamente ese UID, con campos `uid` (string igual al UID), `email` (string), `nombre` (string), `rol` (string `admin`) y `activo` (boolean `true`). El rol debe establecerlo solo una persona autorizada. No crees el perfil admin con ID automático.
-6. Prueba con dos cuentas distintas antes de usar información real. Un empleado debe consultar solamente movimientos con su UID; un administrador puede consultar todos.
+## Supabase Storage
+1. Comprueba que exista el proyecto configurado en `supabase-config.js`.
+2. Crea o conserva el bucket `comprobantes-ber` y configúralo como **privado**.
+3. Configura Firebase Authentication como proveedor Third-Party Auth en Supabase para aceptar el ID token de Firebase.
+4. Revisa `supabase-storage-policies.sql` antes de ejecutarlo. Si ya existen políticas con esos nombres, no las dupliques: edítalas o elimínalas antes de volver a crearlas.
+5. Los empleados pueden gestionar archivos dentro de su carpeta UID. Para que un administrador lea, suba o elimine evidencias de otros ingenieros, el token debe incluir la custom claim `app_role=admin`, emitida por un servidor confiable mediante Firebase Admin SDK. El rol `admin` guardado en Firestore no añade automáticamente esa claim.
+6. No coloques claves `service_role`, claves privadas ni credenciales de Firebase Admin en el navegador o en GitHub.
 
-## Configurar Supabase para comprobantes
-1. En Storage, crea o revisa el bucket `comprobantes-ber` y déjalo **privado**.
-2. Configura Firebase Authentication como proveedor de Third-Party Auth en el proyecto Supabase para que acepte tokens Firebase. La app le proporciona el ID token Firebase a Supabase.
-3. Revisa `supabase-storage-policies.sql` antes de ejecutarlo en SQL Editor. Si ya existen políticas con esos nombres, revisa antes de volver a crearlas.
-4. Por defecto, los empleados pueden leer y subir comprobantes dentro de su carpeta UID. Para que el administrador lea o suba a carpetas ajenas, el token Firebase debe llevar una custom claim `app_role=admin`, configurada de manera confiable con Firebase Admin SDK en un entorno de servidor. El perfil `rol=admin` guardado en Firestore no añade por sí solo esa claim al token. No intentes configurarla desde JavaScript público ni publiques credenciales de servicio.
-5. Si la integración de Third-Party Auth o las políticas no están listas, la app puede iniciar sesión y manejar movimientos en Firestore, pero las cargas o vistas de comprobantes pueden fallar hasta terminar esa configuración.
+## Publicar y probar
+1. Descomprime el ZIP y copia el contenido de `BER-APP/` a la raíz del repositorio GitHub Pages, conservando las carpetas `icons/` e `img/`.
+2. Publica los cambios y abre la app en Chrome con conexión a internet.
+3. Después de publicar, cierra la app instalada anteriormente y vuelve a abrir la página para que el service worker `ber-actividades-v4` descargue los nuevos archivos. Si sigue mostrando la versión vieja, borra los datos del sitio en Chrome y vuelve a cargar.
+4. Prueba con una cuenta de ingeniero y otra de administrador: crear actividad, adjuntar foto/PDF, abrir evidencia, consultar registros y exportar CSV.
+5. La PWA requiere HTTPS. GitHub Pages ya sirve el sitio mediante HTTPS; la opción de instalación depende de que Chrome valide el manifiesto y el service worker.
 
-## Qué incluye y qué validar
-- El splash se oculta por un script independiente tras aproximadamente 1,35 segundos y su transición dura 0,52 segundos; no espera a que Firebase cargue.
-- Login y datos dependen de Firebase y de internet.
-- El comprobante es opcional; máximo 10 MB, imágenes y PDF.
-- El administrador puede asignar un viático a un empleado existente escribiendo el correo del destinatario. El empleado debe crear su cuenta primero.
-- No hay integración bancaria, pagos ni lectura automática de transferencias: la app registra movimientos reportados.
-- Antes de usarla en producción, verifica las reglas, políticas, roles, carga de fotos/PDF y funcionamiento con más de un dispositivo. No subas claves secretas o `service_role` al repositorio.
+## Importante
+- La app usa la colección Firestore `actividades` y el bucket Supabase `comprobantes-ber`.
+- Las reglas de Firestore no borran la colección antigua `movimientos`; solo dejan sus escrituras deshabilitadas.
+- La integración no realiza transferencias bancarias ni pagos; solo registra actividades y archivos.
+- Los valores de configuración web y la clave publishable son identificadores de cliente; la seguridad real depende de Firestore Rules, Supabase RLS/Storage Policies y la protección de los roles.

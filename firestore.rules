@@ -1,137 +1,125 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function signedIn() {
       return request.auth != null;
     }
 
-    function upperProfile(uid) {
-      return /databases/$(database)/documents/Usuarios/$(uid);
-    }
-
-    function lowerProfile(uid) {
-      return /databases/$(database)/documents/usuarios/$(uid);
-    }
-
-    function hasProfile(uid) {
-      return exists(upperProfile(uid)) || exists(lowerProfile(uid));
-    }
-
-    function profile(uid) {
-      return exists(upperProfile(uid))
-        ? get(upperProfile(uid)).data
-        : get(lowerProfile(uid)).data;
-    }
-
-    function activeUser() {
-      return signedIn()
-        && hasProfile(request.auth.uid)
-        && profile(request.auth.uid).activo == true;
-    }
-
-    // Only these two Firebase Auth UIDs can receive administrator permissions.
-    function adminUid() {
-      return signedIn() && request.auth.uid in [
+    // Lista cerrada de propietarios autorizados por UID de Firebase Auth.
+    function trustedAdmin(uid) {
+      return uid in [
         'g5hYmFofzdhobnW72lz9gnEWQBq1',
         'QSFhObd4G1gZogI0NtZhqCg778c2'
       ];
     }
 
+    function profileExists(uid) {
+      return exists(/databases/$(database)/documents/usuarios/$(uid));
+    }
+
+    function profile(uid) {
+      return get(/databases/$(database)/documents/usuarios/$(uid)).data;
+    }
+
+    function activeUser() {
+      return signedIn()
+        && profileExists(request.auth.uid)
+        && profile(request.auth.uid).activo == true;
+    }
+
     function isAdmin() {
       return activeUser()
-        && adminUid()
-        && profile(request.auth.uid).rol in ['admin', 'administrador'];
+        && (
+          trustedAdmin(request.auth.uid)
+          || profile(request.auth.uid).rol in ['admin', 'administrador']
+        );
     }
 
-    function validNewEngineer(uid) {
-      return signedIn()
-        && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly([
-          'uid', 'email', 'nombre', 'rol', 'activo', 'creadoEn'
-        ])
+    match /usuarios/{userId} {
+      // Cada cuenta solo puede crear su propio perfil.
+      // Los dos UID propietarios pueden crearlo como administrador.
+      allow create: if signedIn()
+        && request.auth.uid == userId
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.rol == 'ingeniero'
-        && request.resource.data.activo == true;
+        && request.resource.data.activo == true
+        && (
+          (trustedAdmin(request.auth.uid)
+            && request.resource.data.rol in ['admin', 'administrador'])
+          ||
+          (!trustedAdmin(request.auth.uid)
+            && request.resource.data.rol == 'empleado')
+        );
+
+      allow read: if signedIn()
+        && (request.auth.uid == userId || isAdmin());
+
+      // El propietario puede completar su UID. Solo los UID de confianza
+      // pueden corregir su propio rol administrativo; otros no pueden elevarse.
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.activo == resource.data.activo
+          && (
+            (
+              trustedAdmin(request.auth.uid)
+              && request.resource.data.rol in ['admin', 'administrador']
+            )
+            ||
+            (
+              !trustedAdmin(request.auth.uid)
+              && request.resource.data.rol == resource.data.rol
+            )
+          )
+        );
+
+      allow delete: if isAdmin();
     }
 
-    function canEditProfile(uid) {
-      return (
-        isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['nombre', 'activo', 'actualizadoEn'])
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.rol == resource.data.rol
-        && (!(resource.data.rol in ['admin', 'administrador'])
-          || request.resource.data.activo == resource.data.activo)
-      ) || (
-        activeUser()
-        && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.rol == resource.data.rol
-        && request.resource.data.activo == resource.data.activo
-      );
-    }
-
-    match /config/{configId} {
-      allow read, write: if false;
-    }
-
-    match /Usuarios/{uid} {
-      allow create: if validNewEngineer(uid);
-      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow list: if isAdmin();
-      allow update: if canEditProfile(uid);
-      allow delete: if false;
-    }
-
-    match /usuarios/{uid} {
-      allow create: if validNewEngineer(uid);
-      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow list: if isAdmin();
-      allow update: if canEditProfile(uid);
-      allow delete: if false;
-    }
-
+    // Colección que utiliza la versión actual de app.js.
     match /actividades/{activityId} {
       allow create: if activeUser()
-        && request.resource.data.keys().hasOnly([
-          'uid', 'emailEmpleado', 'nombreEmpleado', 'fecha', 'titulo',
-          'ubicacion', 'descripcion', 'evidencias', 'creadoPor', 'creadoEn'
-        ])
         && request.resource.data.uid is string
-        && request.resource.data.creadoPor == request.auth.uid
-        && ((isAdmin() && hasProfile(request.resource.data.uid))
-          || request.resource.data.uid == request.auth.uid);
+        && request.resource.data.fecha is string
+        && request.resource.data.titulo is string
+        && request.resource.data.descripcion is string
+        && (
+          (isAdmin() && request.resource.data.creadoPor == request.auth.uid)
+          ||
+          (!isAdmin() && request.resource.data.uid == request.auth.uid
+            && request.resource.data.creadoPor == request.auth.uid)
+        );
 
-      allow get: if activeUser()
+      allow read: if activeUser()
         && (resource.data.uid == request.auth.uid || isAdmin());
-      allow list: if isAdmin()
-        || (activeUser() && resource.data.uid == request.auth.uid);
-      allow update, delete: if isAdmin();
+
+      allow update: if isAdmin();
+
+      allow delete: if activeUser()
+        && (resource.data.uid == request.auth.uid || isAdmin());
     }
 
-    match /asientos/{asientoId} {
-      allow get, list: if isAdmin();
-      allow create: if isAdmin()
-        && request.resource.data.actividadId is string
-        && exists(/databases/$(database)/documents/actividades/$(request.resource.data.actividadId))
-        && request.resource.data.creadoPor == request.auth.uid
-        && request.resource.data.lineas is list
-        && request.resource.data.debitoTotal is number
-        && request.resource.data.creditoTotal is number
-        && request.resource.data.estado in ['borrador', 'listo']
-        && (request.resource.data.estado == 'borrador'
-          || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
-      allow update: if isAdmin()
-        && request.resource.data.creadoPor == resource.data.creadoPor
-        && request.resource.data.actividadId == resource.data.actividadId
-        && request.resource.data.estado in ['borrador', 'listo']
-        && (request.resource.data.estado == 'borrador'
-          || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
-      allow delete: if isAdmin() && resource.data.estado == 'borrador';
+    // Se conserva compatibilidad con datos antiguos de la colección movimientos.
+    match /movimientos/{movementId} {
+      allow create: if activeUser()
+        && request.resource.data.valor is number
+        && request.resource.data.valor > 0
+        && request.resource.data.tipo in ['viatico', 'gasto']
+        && request.resource.data.fecha is string
+        && request.resource.data.categoria is string
+        && request.resource.data.descripcion is string
+        && (
+          (isAdmin() && request.resource.data.uid is string)
+          || (request.resource.data.tipo == 'gasto'
+              && request.resource.data.uid == request.auth.uid)
+        );
+
+      allow read: if activeUser()
+        && (resource.data.uid == request.auth.uid || isAdmin());
+
+      allow update, delete: if isAdmin();
     }
   }
 }
