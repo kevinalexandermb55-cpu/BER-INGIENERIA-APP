@@ -94,3 +94,25 @@ service cloud.firestore {
         && (resource.data.uid == request.auth.uid || isAdmin());
       allow update, delete: if isAdmin();
     }
+
+    match /asientos/{asientoId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['actividadId','fecha','tipoDocumento','nombreDocumento','numeroDocumento','beneficiario','identificacion','concepto','lineas','debitoTotal','creditoTotal','estado','creadoPor','creadoEn','actualizadoEn'])
+        && request.resource.data.actividadId is string
+        && exists(/databases/$(database)/documents/actividades/$(request.resource.data.actividadId))
+        && request.resource.data.creadoPor == request.auth.uid
+        && request.resource.data.lineas is list
+        && request.resource.data.debitoTotal is number
+        && request.resource.data.creditoTotal is number
+        && request.resource.data.estado in ['borrador','listo']
+        && (request.resource.data.estado == 'borrador' || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
+      allow update: if isAdmin()
+        && request.resource.data.creadoPor == resource.data.creadoPor
+        && request.resource.data.actividadId == resource.data.actividadId
+        && request.resource.data.estado in ['borrador','listo']
+        && (request.resource.data.estado == 'borrador' || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
+      allow delete: if isAdmin() && resource.data.estado == 'borrador';
+    }
+  }
+}
