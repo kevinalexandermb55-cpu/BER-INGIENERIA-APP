@@ -26,7 +26,7 @@ service cloud.firestore {
       return profile(uid).rol in ['admin', 'administrador'];
     }
     function adminConfigured() {
-      let path = /databases/$(database)/documents/config/berSecurity;
+      let path = /databases/$(database)/documents/config/bersecurity;
       return exists(path)
         && get(path).data.adminUid1 is string
         && get(path).data.adminUid2 is string

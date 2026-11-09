@@ -19,7 +19,7 @@ service firebase.storage {
     }
     function isAdmin() {
       let profile = adminProfilePath(request.auth.uid);
-      let adminPath = /databases/(default)/documents/config/berSecurity;
+      let adminPath = /databases/(default)/documents/config/bersecurity;
       return signedIn()
         && firestore.exists(profile)
         && firestore.get(profile).data.activo == true
