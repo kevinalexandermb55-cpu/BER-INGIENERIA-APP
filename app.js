@@ -203,9 +203,9 @@ onAuthStateChanged(auth, async user => {
     const permissionMessages = {
       profile:'Firebase aceptó tus credenciales, pero Firestore no permitió leer o crear tu perfil. Verifica la colección Usuarios/usuarios, el UID del documento y las reglas.',
       activities:signedInAsAdmin
-        ? 'Firestore bloqueó la carga de actividades del equipo. Verifica que el perfil tenga rol admin y activo true, y que config/berSecurity contenga exactamente los dos UID administradores.'
+        ? 'Firestore bloqueó la carga de actividades del equipo. Verifica que el perfil esté activo y tenga rol administrador. Los UID autorizados están definidos en las reglas publicadas.'
         : 'Firestore bloqueó la lectura de tus actividades. Verifica que tu perfil esté activo y que las reglas permitan consultar solo tu UID.',
-      users:'Firestore bloqueó la lista de usuarios. Verifica que tu UID esté autorizado en config/berSecurity y que las reglas estén publicadas.',
+      users:'Firestore bloqueó la lista de usuarios. Verifica que tu UID esté autorizado en las reglas publicadas.',
       accounting:'Firestore bloqueó los comprobantes contables. Verifica la autorización de administrador y las reglas de la colección asientos.'
     };
     const message = error.code === 'permission-denied'

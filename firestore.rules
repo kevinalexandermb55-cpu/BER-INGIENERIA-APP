@@ -1,117 +1,136 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
+    function signedIn() {
+      return request.auth != null;
+    }
 
-    function primaryProfilePath(uid) {
+    function upperProfile(uid) {
       return /databases/$(database)/documents/Usuarios/$(uid);
     }
-    function legacyProfilePath(uid) {
+
+    function lowerProfile(uid) {
       return /databases/$(database)/documents/usuarios/$(uid);
     }
+
     function hasProfile(uid) {
-      return exists(primaryProfilePath(uid)) || exists(legacyProfilePath(uid));
+      return exists(upperProfile(uid)) || exists(lowerProfile(uid));
     }
-    // The historical uppercase collection is canonical; lowercase is supported for existing records.
+
     function profile(uid) {
-      return exists(primaryProfilePath(uid))
-        ? get(primaryProfilePath(uid)).data
-        : get(legacyProfilePath(uid)).data;
+      return exists(upperProfile(uid))
+        ? get(upperProfile(uid)).data
+        : get(lowerProfile(uid)).data;
     }
+
     function activeUser() {
-      return signedIn() && hasProfile(request.auth.uid)
+      return signedIn()
+        && hasProfile(request.auth.uid)
         && profile(request.auth.uid).activo == true;
     }
-    function hasAdminRole(uid) {
-      return profile(uid).rol in ['admin', 'administrador'];
+
+    // Only these two Firebase Auth UIDs can receive administrator permissions.
+    function adminUid() {
+      return signedIn() && request.auth.uid in [
+        'g5hYmFofzdhobnW72lz9gnEWQBq1',
+        'QSFhObd4G1gZogI0NtZhqCg778c2'
+      ];
     }
-    function adminConfigured() {
-      let path = /databases/$(database)/documents/config/bersecurity;
-      return exists(path)
-        && get(path).data.adminUid1 is string
-        && get(path).data.adminUid2 is string
-        && get(path).data.adminUid1 != get(path).data.adminUid2
-        && request.auth.uid in [get(path).data.adminUid1, get(path).data.adminUid2];
-    }
+
     function isAdmin() {
-      return activeUser() && hasAdminRole(request.auth.uid)
-        && adminConfigured();
+      return activeUser()
+        && adminUid()
+        && profile(request.auth.uid).rol in ['admin', 'administrador'];
     }
-    function canCreateProfile(userId) {
-      return signedIn() && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['uid','email','nombre','rol','activo','creadoEn'])
+
+    function validNewEngineer(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'nombre', 'rol', 'activo', 'creadoEn'
+        ])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.rol == 'ingeniero'
         && request.resource.data.activo == true;
     }
-    function canUpdateProfile(userId) {
-      return (isAdmin()
-          && request.resource.data.uid == resource.data.uid
-          && request.resource.data.email == resource.data.email
-          && request.resource.data.rol == resource.data.rol
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre','activo','actualizadoEn'])
-          && (!hasAdminRole(userId) || request.resource.data.activo == resource.data.activo))
-        || (activeUser() && request.auth.uid == userId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
-          && request.resource.data.uid == resource.data.uid
-          && request.resource.data.rol == resource.data.rol
-          && request.resource.data.activo == resource.data.activo);
+
+    function canEditProfile(uid) {
+      return (
+        isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['nombre', 'activo', 'actualizadoEn'])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.rol == resource.data.rol
+        && (!(resource.data.rol in ['admin', 'administrador'])
+          || request.resource.data.activo == resource.data.activo)
+      ) || (
+        activeUser()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.rol == resource.data.rol
+        && request.resource.data.activo == resource.data.activo
+      );
     }
 
     match /config/{configId} {
       allow read, write: if false;
     }
 
-    // Keep both spellings readable so existing records are not lost; the app writes new profiles to `Usuarios`.
-    match /Usuarios/{userId} {
-      allow create: if canCreateProfile(userId);
-      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
+    match /Usuarios/{uid} {
+      allow create: if validNewEngineer(uid);
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow list: if isAdmin();
-      allow update: if canUpdateProfile(userId);
+      allow update: if canEditProfile(uid);
       allow delete: if false;
     }
-    match /usuarios/{userId} {
-      allow create: if canCreateProfile(userId);
-      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
+
+    match /usuarios/{uid} {
+      allow create: if validNewEngineer(uid);
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow list: if isAdmin();
-      allow update: if canUpdateProfile(userId);
+      allow update: if canEditProfile(uid);
       allow delete: if false;
     }
 
     match /actividades/{activityId} {
       allow create: if activeUser()
-        && request.resource.data.keys().hasOnly(['uid','emailEmpleado','nombreEmpleado','fecha','titulo','ubicacion','descripcion','evidencias','creadoPor','creadoEn'])
+        && request.resource.data.keys().hasOnly([
+          'uid', 'emailEmpleado', 'nombreEmpleado', 'fecha', 'titulo',
+          'ubicacion', 'descripcion', 'evidencias', 'creadoPor', 'creadoEn'
+        ])
         && request.resource.data.uid is string
-        && request.resource.data.emailEmpleado is string
-        && request.resource.data.fecha is string
-        && request.resource.data.titulo is string
-        && request.resource.data.descripcion is string
-        && request.resource.data.evidencias is list
         && request.resource.data.creadoPor == request.auth.uid
-        && ((isAdmin() && hasProfile(request.resource.data.uid)) || request.resource.data.uid == request.auth.uid);
-      allow get, list: if activeUser()
+        && ((isAdmin() && hasProfile(request.resource.data.uid))
+          || request.resource.data.uid == request.auth.uid);
+
+      allow get: if activeUser()
         && (resource.data.uid == request.auth.uid || isAdmin());
+      allow list: if isAdmin()
+        || (activeUser() && resource.data.uid == request.auth.uid);
       allow update, delete: if isAdmin();
     }
 
     match /asientos/{asientoId} {
       allow get, list: if isAdmin();
       allow create: if isAdmin()
-        && request.resource.data.keys().hasOnly(['actividadId','fecha','tipoDocumento','nombreDocumento','numeroDocumento','beneficiario','identificacion','concepto','lineas','debitoTotal','creditoTotal','estado','creadoPor','creadoEn','actualizadoEn'])
         && request.resource.data.actividadId is string
         && exists(/databases/$(database)/documents/actividades/$(request.resource.data.actividadId))
         && request.resource.data.creadoPor == request.auth.uid
         && request.resource.data.lineas is list
         && request.resource.data.debitoTotal is number
         && request.resource.data.creditoTotal is number
-        && request.resource.data.estado in ['borrador','listo']
-        && (request.resource.data.estado == 'borrador' || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
+        && request.resource.data.estado in ['borrador', 'listo']
+        && (request.resource.data.estado == 'borrador'
+          || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
       allow update: if isAdmin()
         && request.resource.data.creadoPor == resource.data.creadoPor
         && request.resource.data.actividadId == resource.data.actividadId
-        && request.resource.data.estado in ['borrador','listo']
-        && (request.resource.data.estado == 'borrador' || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
+        && request.resource.data.estado in ['borrador', 'listo']
+        && (request.resource.data.estado == 'borrador'
+          || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
       allow delete: if isAdmin() && resource.data.estado == 'borrador';
     }
   }
