@@ -4,6 +4,11 @@ service firebase.storage {
     function signedIn() { return request.auth != null; }
     function primaryProfilePath(uid) { return /databases/(default)/documents/Usuarios/$(uid); }
     function legacyProfilePath(uid) { return /databases/(default)/documents/usuarios/$(uid); }
+    function adminProfilePath(uid) {
+      return firestore.exists(primaryProfilePath(uid))
+        ? primaryProfilePath(uid)
+        : legacyProfilePath(uid);
+    }
     function activeUser() {
       return signedIn()
         && (firestore.exists(primaryProfilePath(request.auth.uid))
@@ -12,14 +17,13 @@ service firebase.storage {
           ? firestore.get(primaryProfilePath(request.auth.uid)).data.activo == true
           : firestore.get(legacyProfilePath(request.auth.uid)).data.activo == true);
     }
-    // Admin profiles use the historical uppercase collection so this check stays within Storage's Firestore lookup limit.
     function isAdmin() {
-      let profile = primaryProfilePath(request.auth.uid);
+      let profile = adminProfilePath(request.auth.uid);
       let adminPath = /databases/(default)/documents/config/berSecurity;
       return signedIn()
         && firestore.exists(profile)
         && firestore.get(profile).data.activo == true
-        && firestore.get(profile).data.rol == 'admin'
+        && firestore.get(profile).data.rol in ['admin', 'administrador']
         && firestore.exists(adminPath)
         && firestore.get(adminPath).data.adminUid1 is string
         && firestore.get(adminPath).data.adminUid2 is string

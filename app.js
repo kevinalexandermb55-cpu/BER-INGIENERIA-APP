@@ -21,7 +21,8 @@ let showingAll = false;
 let activeFilters = { employee: '', from: '', to: '' };
 let editingAccountingId = null;
 
-const roleIsAdmin = profile => profile?.rol === 'admin';
+// Accept the administrator label used by the earlier app as well as the current role value.
+const roleIsAdmin = profile => ['admin', 'administrador'].includes(String(profile?.rol || '').trim().toLowerCase());
 const isAdmin = () => roleIsAdmin(currentProfile);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]);
 const friendlyError = error => ({

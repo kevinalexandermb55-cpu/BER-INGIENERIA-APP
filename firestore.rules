@@ -22,6 +22,9 @@ service cloud.firestore {
       return signedIn() && hasProfile(request.auth.uid)
         && profile(request.auth.uid).activo == true;
     }
+    function hasAdminRole(uid) {
+      return profile(uid).rol in ['admin', 'administrador'];
+    }
     function adminConfigured() {
       let path = /databases/$(database)/documents/config/berSecurity;
       return exists(path)
@@ -31,7 +34,7 @@ service cloud.firestore {
         && request.auth.uid in [get(path).data.adminUid1, get(path).data.adminUid2];
     }
     function isAdmin() {
-      return activeUser() && profile(request.auth.uid).rol == 'admin'
+      return activeUser() && hasAdminRole(request.auth.uid)
         && adminConfigured();
     }
     function canCreateProfile(userId) {
@@ -48,7 +51,7 @@ service cloud.firestore {
           && request.resource.data.email == resource.data.email
           && request.resource.data.rol == resource.data.rol
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre','activo','actualizadoEn'])
-          && (resource.data.rol != 'admin' || request.resource.data.activo == resource.data.activo))
+          && (!hasAdminRole(userId) || request.resource.data.activo == resource.data.activo))
         || (activeUser() && request.auth.uid == userId
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
           && request.resource.data.uid == resource.data.uid
@@ -91,25 +94,3 @@ service cloud.firestore {
         && (resource.data.uid == request.auth.uid || isAdmin());
       allow update, delete: if isAdmin();
     }
-
-    match /asientos/{asientoId} {
-      allow get, list: if isAdmin();
-      allow create: if isAdmin()
-        && request.resource.data.keys().hasOnly(['actividadId','fecha','tipoDocumento','nombreDocumento','numeroDocumento','beneficiario','identificacion','concepto','lineas','debitoTotal','creditoTotal','estado','creadoPor','creadoEn','actualizadoEn'])
-        && request.resource.data.actividadId is string
-        && exists(/databases/$(database)/documents/actividades/$(request.resource.data.actividadId))
-        && request.resource.data.creadoPor == request.auth.uid
-        && request.resource.data.lineas is list
-        && request.resource.data.debitoTotal is number
-        && request.resource.data.creditoTotal is number
-        && request.resource.data.estado in ['borrador','listo']
-        && (request.resource.data.estado == 'borrador' || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
-      allow update: if isAdmin()
-        && request.resource.data.creadoPor == resource.data.creadoPor
-        && request.resource.data.actividadId == resource.data.actividadId
-        && request.resource.data.estado in ['borrador','listo']
-        && (request.resource.data.estado == 'borrador' || request.resource.data.debitoTotal == request.resource.data.creditoTotal);
-      allow delete: if isAdmin() && resource.data.estado == 'borrador';
-    }
-  }
-}
